@@ -15,6 +15,8 @@ public interface IOsuDataSource
     Task<IReadOnlyList<OsuScore>> GetScoresAsync(long userId, ScoreType type, string mode, int limit, int offset, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<OsuBeatmapPlaycount>> GetMostPlayedAsync(long userId, int limit, int offset, CancellationToken cancellationToken);
+
+    Task<OsuBeatmapsetDetails> GetBeatmapsetAsync(long beatmapsetId, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -48,6 +50,12 @@ public sealed class OsuApiClient(HttpClient http, IAccessTokenProvider tokens, O
         var path = string.Create(CultureInfo.InvariantCulture,
             $"api/v2/users/{userId}/beatmapsets/most_played?limit={limit}&offset={offset}");
         return await GetAsync<List<OsuBeatmapPlaycount>>(path, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<OsuBeatmapsetDetails> GetBeatmapsetAsync(long beatmapsetId, CancellationToken cancellationToken)
+    {
+        var path = string.Create(CultureInfo.InvariantCulture, $"api/v2/beatmapsets/{beatmapsetId}");
+        return await GetAsync<OsuBeatmapsetDetails>(path, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<T> GetAsync<T>(string relativePath, CancellationToken cancellationToken)

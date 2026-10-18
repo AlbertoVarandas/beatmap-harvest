@@ -1,0 +1,173 @@
+@* Song details, as in osu!'s song list: cover, metadata and every difficulty with its attributes.
+   Opens instantly with the harvested data; the API fills in the rest. *@
+@inject MapDetailsService Details
+
+<div class="modal-backdrop" @onclick="CloseAsync">
+    <div class="modal" role="dialog" aria-label="@Mapset.Title" tabindex="-1" @ref="_root"
+         @onclick:stopPropagation @onkeydown="OnKeyDown">
+        <div class="modal-cover" style="background-image:url('@CoverUrl')">
+            <button class="modal-close" title="Close (Esc)" @onclick="CloseAsync">✕</button>
+            <div class="modal-heading">
+                <h2>@Mapset.Title</h2>
+                <div>@Mapset.Artist</div>
+                @if (Unicode() is { } unicode)
+                {
+                    <div class="unicode">@unicode</div>
+                }
+            </div>
+        </div>
+
+        <div class="modal-body">
+            <div class="detail-tags">
+                <span class="tag status-@(Mapset.Status ?? "unknown")">@Format.Status(Mapset.Status)</span>
+                @if (Owned)
+                {
+                    <span class="tag have">Have it</span>
+                }
+                @if (_details?.Video == true) { <span class="tag">video</span> }
+                @if (_details?.Storyboard == true) { <span class="tag">storyboard</span> }
+            </div>
+
+            <div class="detail-grid">
+                <div><span>Mapped by</span><b>@Mapset.Creator</b></div>
+                <div><span>Length</span><b>@Format.Length(Mapset.LengthSeconds)</b></div>
+                <div><span>BPM</span><b>@(_details is { Bpm: > 0 } d ? Format.Number(d.Bpm) : "–")</b></div>
+                <div><span>Your plays</span><b>@Mapset.TotalPlays</b></div>
+                <div><span>Ranked</span><b>@Date(_details?.RankedDate)</b></div>
+                <div><span>Submitted</span><b>@Date(_details?.SubmittedDate)</b></div>
+                <div><span>Global plays</span><b>@(_details is null ? "–" : _details.PlayCount.ToString("N0", CultureInfo.CurrentCulture))</b></div>
+                <div><span>Favourites</span><b>@(_details is null ? "–" : _details.FavouriteCount.ToString("N0", CultureInfo.CurrentCulture))</b></div>
+                @if (!string.IsNullOrWhiteSpace(_details?.Source))
+                {
+                    <div class="wide"><span>Source</span><b>@_details.Source</b></div>
+                }
+            </div>
+
+            <div class="actions">
+                @if (Mapset.Preview is not null)
+                {
+                    <button class="btn" @onclick="() => _playing = !_playing">@(_playing ? "■ Stop preview" : "▶ Play preview")</button>
+                }
+                <button class="btn" @onclick="() => ShellLauncher.Open(Mapset.Url)">Open on osu!</button>
+                @if (_loading)
+                {
+                    <span class="spinner"></span><span class="muted">Loading details…</span>
+                }
+                else if (_error is not null)
+                {
+                    <span class="error-inline">@_error</span>
+                }
+            </div>
+
+            <table class="table diff-table">
+                <thead>
+                    <tr>
+                        <th>Difficulty</th><th class="num">Stars</th><th class="num">Length</th><th class="num">BPM</th>
+                        <th class="num">CS</th><th class="num">AR</th><th class="num">OD</th><th class="num">HP</th>
+                        <th class="num">Combo</th><th class="num">Your plays</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Rows())
+                    {
+                        <tr>
+                            <td><i class="dot mode-@row.Mode"></i> @row.Version</td>
+                            <td class="num"><span class="diff" style="background:@StarColor.For(row.Stars);color:@StarColor.TextFor(row.Stars)">@Format.Stars(row.Stars)★</span></td>
+                            <td class="num">@Format.Length(row.Length)</td>
+                            <td class="num">@Value(row.Api?.Bpm)</td>
+                            <td class="num">@Value(row.Api?.Cs)</td>
+                            <td class="num">@Value(row.Api?.Ar)</td>
+                            <td class="num">@Value(row.Api?.Accuracy)</td>
+                            <td class="num">@Value(row.Api?.Drain)</td>
+                            <td class="num">@(row.Api?.MaxCombo?.ToString(CultureInfo.CurrentCulture) ?? "–")</td>
+                            <td class="num">@(row.Plays?.ToString(CultureInfo.CurrentCulture) ?? "–")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            @if (!string.IsNullOrWhiteSpace(_details?.Tags))
+            {
+                <p class="detail-tagline muted">@_details.Tags</p>
+            }
+        </div>
+
+        @if (_playing && Mapset.Preview is not null)
+        {
+            <audio src="@Mapset.Preview" autoplay @onended="() => _playing = false"></audio>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public MapsetInfo Mapset { get; set; } = default!;
+    [Parameter] public bool Owned { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private ElementReference _root;
+    private OsuBeatmapsetDetails? _details;
+    private bool _loading = true;
+    private string? _error;
+    private bool _playing;
+
+    private string CoverUrl =>
+        _details?.Covers?.Cover2x ?? string.Create(CultureInfo.InvariantCulture, $"https://assets.ppy.sh/beatmaps/{Mapset.Id}/covers/cover@2x.jpg");
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _details = await Details.GetAsync(Mapset.Id);
+        }
+        catch (OsuApiException ex)
+        {
+            _error = ex.StatusCode == System.Net.HttpStatusCode.NotFound ? "This map is no longer on osu!." : ex.Message;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            _error = "Could not reach osu! for the full details.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await _root.FocusAsync();
+    }
+
+    private Task OnKeyDown(KeyboardEventArgs e) => e.Key == "Escape" ? CloseAsync() : Task.CompletedTask;
+
+    private Task CloseAsync() => OnClose.InvokeAsync();
+
+    private string? Unicode()
+    {
+        var text = $"{_details?.TitleUnicode} · {_details?.ArtistUnicode}";
+        return _details is null
+               || (_details.TitleUnicode == Mapset.Title && _details.ArtistUnicode == Mapset.Artist)
+               || string.IsNullOrWhiteSpace(_details.TitleUnicode)
+            ? null
+            : text;
+    }
+
+    private sealed record Row(string Version, string Mode, double Stars, int Length, int? Plays, OsuBeatmapDetails? Api);
+
+    /// <summary>Every difficulty of the set (from the API when loaded), with the harvested play counts.</summary>
+    private IEnumerable<Row> Rows()
+    {
+        var harvested = Mapset.Difficulties.ToDictionary(d => d.Id);
+        var rows = _details is { Beatmaps.Count: > 0 }
+            ? _details.Beatmaps.Select(b => new Row(b.Version, b.Mode, b.DifficultyRating, b.TotalLength,
+                harvested.GetValueOrDefault(b.Id)?.Plays, b))
+            : Mapset.Difficulties.Select(d => new Row(d.Version, d.Mode, d.Stars, d.LengthSeconds, d.Plays, null));
+        return rows.OrderBy(r => Array.IndexOf(Ruleset.All.ToArray(), r.Mode)).ThenBy(r => r.Stars);
+    }
+
+    private static string Value(double? value) => value is { } v ? Format.Number(v) : "–";
+
+    private static string Date(DateTimeOffset? date) =>
+        date?.ToLocalTime().ToString("d", CultureInfo.CurrentCulture) ?? "–";
+}

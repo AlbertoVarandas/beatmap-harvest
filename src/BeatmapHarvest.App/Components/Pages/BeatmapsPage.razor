@@ -198,6 +198,7 @@ else
                             }
                         </div>
                     </div>
+                    <button class="info-btn" title="Details" @onclick="() => ShowDetails(m)" @onclick:stopPropagation>i</button>
                     <div class="check">@(selected ? "✓" : "")</div>
                 </div>
             </div>
@@ -222,6 +223,11 @@ else
     @if (_previewUrl is not null)
     {
         <audio @key="_previewUrl" src="@_previewUrl" autoplay @onended="StopPreview"></audio>
+    }
+
+    @if (_details is not null)
+    {
+        <MapDetailsDialog Mapset="_details" Owned="_owned.Contains(_details.Id)" OnClose="() => _details = null" />
     }
 }
 </div>
@@ -249,6 +255,7 @@ else
     private int? _playsMin, _playsMax;
 
     private long? _playing;
+    private MapsetInfo? _details;
     private string? _previewUrl;
     private string? _message;
     private bool _messageOk;
@@ -412,6 +419,12 @@ else
     {
         _playing = null;
         _previewUrl = null;
+    }
+
+    private void ShowDetails(MapsetInfo m)
+    {
+        StopPreview();
+        _details = m;
     }
 
     private void StartDownload()

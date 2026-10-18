@@ -61,6 +61,7 @@ public static class ServiceRegistration
         services.AddSingleton<HarvestSession>();
         services.AddSingleton<SelectorState>();
         services.AddSingleton<DownloadSession>();
+        services.AddSingleton<MapDetailsService>();
         return services;
     }
 

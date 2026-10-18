@@ -63,6 +63,38 @@ public sealed class OsuApiClientTests : IDisposable
     }
 
     [Fact]
+    public async Task Reads_beatmapset_details()
+    {
+        const string json = """
+            {"id":318207,"artist":"Utsu-P","artist_unicode":"うつＰ","title":"Tokyo Teddy Bear","creator":"puxtu",
+             "bpm":220,"play_count":1234567,"favourite_count":890,"ranked_date":"2015-06-01T10:00:00+00:00",
+             "source":"","tags":"vocaloid rin","status":"ranked","video":false,"storyboard":true,
+             "covers":{"cover@2x":"https://assets.ppy.sh/c.jpg"},
+             "beatmaps":[{"id":736930,"version":"[4K] NM","mode":"mania","difficulty_rating":2.19,"total_length":187,
+               "hit_length":180,"bpm":220,"cs":4,"ar":5,"accuracy":7,"drain":7.5,"count_circles":900,"count_sliders":120,
+               "count_spinners":0,"max_combo":1500,"playcount":42,"passcount":30}]}
+            """;
+        var handler = new FakeHttpHandler(req => req.RequestUri!.AbsolutePath == "/oauth/token"
+            ? FakeHttpHandler.Json(TokenJson)
+            : FakeHttpHandler.Json(json));
+        var client = CreateClient(handler);
+
+        var set = await client.GetBeatmapsetAsync(318207, CancellationToken.None);
+
+        Assert.Equal("/api/v2/beatmapsets/318207", handler.Requests[^1].RequestUri!.AbsolutePath);
+        Assert.Equal("うつＰ", set.ArtistUnicode);
+        Assert.Equal(220, set.Bpm);
+        Assert.Equal(2015, set.RankedDate!.Value.Year);
+        Assert.True(set.Storyboard);
+        Assert.Equal("https://assets.ppy.sh/c.jpg", set.Covers!.Cover2x);
+        var map = Assert.Single(set.Beatmaps);
+        Assert.Equal(7, map.Accuracy);
+        Assert.Equal(7.5, map.Drain);
+        Assert.Equal(1500, map.MaxCombo);
+        Assert.Equal(120, map.CountSliders);
+    }
+
+    [Fact]
     public async Task Retries_the_same_request_after_429()
     {
         var calls = 0;

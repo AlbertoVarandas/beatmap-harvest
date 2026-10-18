@@ -82,6 +82,57 @@ public sealed record OsuScore
     public OsuBeatmapset? Beatmapset { get; init; }
 }
 
+/// <summary><c>GET /beatmapsets/{id}</c>: the set with all its difficulties and their attributes.</summary>
+public sealed record OsuBeatmapsetDetails
+{
+    public long Id { get; init; }
+    public string Artist { get; init; } = "";
+    public string? ArtistUnicode { get; init; }
+    public string Title { get; init; } = "";
+    public string? TitleUnicode { get; init; }
+    public string Creator { get; init; } = "";
+    public string? Source { get; init; }
+    public string? Tags { get; init; }
+    public string? Status { get; init; }
+    public double Bpm { get; init; }
+    public long PlayCount { get; init; }
+    public long FavouriteCount { get; init; }
+    public DateTimeOffset? RankedDate { get; init; }
+    public DateTimeOffset? SubmittedDate { get; init; }
+    public DateTimeOffset? LastUpdated { get; init; }
+    public string? PreviewUrl { get; init; }
+    public bool Video { get; init; }
+    public bool Storyboard { get; init; }
+    public OsuCovers? Covers { get; init; }
+    public IReadOnlyList<OsuBeatmapDetails> Beatmaps { get; init; } = [];
+}
+
+public sealed record OsuBeatmapDetails
+{
+    public long Id { get; init; }
+    public string Version { get; init; } = "";
+    public string Mode { get; init; } = Ruleset.Osu;
+    public double DifficultyRating { get; init; }
+    public int TotalLength { get; init; }
+    public int HitLength { get; init; }
+    public double Bpm { get; init; }
+    public double Cs { get; init; }
+    public double Ar { get; init; }
+
+    /// <summary>Overall difficulty (OD).</summary>
+    public double Accuracy { get; init; }
+
+    /// <summary>HP drain.</summary>
+    public double Drain { get; init; }
+
+    public int CountCircles { get; init; }
+    public int CountSliders { get; init; }
+    public int CountSpinners { get; init; }
+    public int? MaxCombo { get; init; }
+    public long Playcount { get; init; }
+    public long Passcount { get; init; }
+}
+
 internal sealed record OsuTokenResponse
 {
     public string TokenType { get; init; } = "";

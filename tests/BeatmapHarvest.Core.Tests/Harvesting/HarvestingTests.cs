@@ -88,6 +88,9 @@ public class ProfileHarvesterTests
                     .ToList();
             return Task.FromResult(page);
         }
+
+        public Task<OsuBeatmapsetDetails> GetBeatmapsetAsync(long beatmapsetId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 
     [Fact]
