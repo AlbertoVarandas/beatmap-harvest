@@ -66,14 +66,17 @@ If you stop the download or close the app, start it again later: maps that were 
 
 ### 4. Add the maps to osu!
 
-On **Downloads**, click **Move to osu! Songs…**. The next time osu! starts, it imports them.
+On **Downloads**, click **Move downloads…**. By default this moves the `.osz` files into osu!'s Songs folder; the next time osu! starts, it imports them.
 
 You can also open the downloads folder (**Open folder**) and double-click the `.osz` files, or drag them onto the osu! window.
 
 ## Settings
 
+Each folder can be typed, picked with **Browse…**, or set back to its default with **Default**.
+
 - **Downloads folder**: where `.osz` files are saved.
-- **osu! Songs folder**: used to find maps you already have and as the destination of **Move to osu! Songs**. The default is the usual osu! install location.
+- **osu! Songs folder**: used to find maps you already have. The default is the usual osu! install location.
+- **Move downloads to**: where **Move downloads…** puts the files. The default is the osu! Songs folder.
 - **Parallel downloads**: how many maps download at the same time.
 
 ## FAQ

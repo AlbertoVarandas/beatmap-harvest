@@ -1,0 +1,34 @@
+@* A folder setting: type a path, pick one with the native dialog, or go back to the default (null). *@
+
+<div class="field">
+    <span>@Label @if (Hint is not null) { <small class="muted">(@Hint)</small> }</span>
+    <div class="folder-field">
+        <input class="input" placeholder="@DefaultPath" value="@Value" @onchange="OnTyped" />
+        <button class="btn" type="button" @onclick="Browse">Browse…</button>
+        <button class="btn" type="button" disabled="@(Value is null)" title="Use @DefaultPath" @onclick="() => SetAsync(null)">Default</button>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter] public string? Hint { get; set; }
+
+    /// <summary>The chosen folder; null means <see cref="DefaultPath"/>.</summary>
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter, EditorRequired] public string DefaultPath { get; set; } = "";
+
+    private Task OnTyped(ChangeEventArgs e) => SetAsync(e.Value as string);
+
+    private Task Browse()
+    {
+        var picked = FileDialogs.PickFolder($"Choose: {Label}", Value ?? DefaultPath);
+        return picked is null ? Task.CompletedTask : SetAsync(picked);
+    }
+
+    private Task SetAsync(string? value)
+    {
+        Value = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        return ValueChanged.InvokeAsync(Value);
+    }
+}

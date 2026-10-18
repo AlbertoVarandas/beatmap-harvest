@@ -60,6 +60,9 @@ public sealed class DownloadSession(DownloadRunner runner, BeatmapDownloader dow
     public string DownloadsDirectory => settings.Load().DownloadsDirectory ?? paths.DefaultDownloadsDirectory;
     public string SongsDirectory => settings.Load().SongsDirectory ?? AppPaths.DefaultSongsDirectory;
 
+    /// <summary>Target of "Move downloads"; the Songs folder unless another one is set in Settings.</summary>
+    public string MoveToDirectory => settings.Load().MoveToDirectory ?? SongsDirectory;
+
     /// <summary>Starts a run in the background; does nothing while one is running.</summary>
     public void Start(IEnumerable<MapsetInfo> mapsets)
     {
@@ -98,11 +101,11 @@ public sealed class DownloadSession(DownloadRunner runner, BeatmapDownloader dow
 
     public void Cancel() => _cts?.Cancel();
 
-    /// <summary>Moves every .osz in the downloads folder into osu!'s Songs folder (osu! imports them on its next start).</summary>
+    /// <summary>Moves every .osz in the downloads folder to <see cref="MoveToDirectory"/> (osu! imports them from Songs on its next start).</summary>
     public Task<SongsFolder.MoveResult> MoveToSongsAsync()
     {
         var from = DownloadsDirectory;
-        var to = SongsDirectory;
+        var to = MoveToDirectory;
         return Task.Run(() => SongsFolder.MoveArchives(from, to));
     }
 

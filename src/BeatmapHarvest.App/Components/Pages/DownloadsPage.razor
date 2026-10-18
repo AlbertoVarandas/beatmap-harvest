@@ -121,15 +121,15 @@ else
 }
 
 <section class="panel">
-    <h2>osu! Songs folder</h2>
+    <h2>Move downloads</h2>
     <p class="muted">
-        osu! (stable) imports <code>.osz</code> files placed in its Songs folder the next time it starts.
-        This moves every <code>.osz</code> from the downloads folder to <code>@Session.SongsDirectory</code>.
+        Moves every <code>.osz</code> from the downloads folder to <code>@Session.MoveToDirectory</code>
+        (<a href="settings">change in Settings</a>). osu! (stable) imports <code>.osz</code> files placed in its Songs folder the next time it starts.
     </p>
     @if (_confirmMove)
     {
         <div class="callout warn">
-            Move every .osz from <code>@Session.DownloadsDirectory</code> to <code>@Session.SongsDirectory</code>?
+            Move every .osz from <code>@Session.DownloadsDirectory</code> to <code>@Session.MoveToDirectory</code>?
             <div class="actions">
                 <button class="btn primary" disabled="@_moving" @onclick="MoveAsync">Move</button>
                 <button class="btn" disabled="@_moving" @onclick="() => _confirmMove = false">Cancel</button>
@@ -139,7 +139,7 @@ else
     }
     else
     {
-        <button class="btn" disabled="@Session.IsRunning" @onclick="() => { _confirmMove = true; _moveMessage = null; }">Move to osu! Songs…</button>
+        <button class="btn" disabled="@Session.IsRunning" @onclick="() => { _confirmMove = true; _moveMessage = null; }">Move downloads…</button>
     }
     @if (_moveMessage is not null)
     {
@@ -165,7 +165,7 @@ else
             _moveOk = true;
             _moveMessage = result.Moved == 0 && result.AlreadyThere == 0
                 ? "There were no .osz files to move."
-                : $"Moved {result.Moved} {(result.Moved == 1 ? "map" : "maps")}." + (result.AlreadyThere > 0 ? $" {result.AlreadyThere} were already in Songs and were left in the downloads folder." : "");
+                : $"Moved {result.Moved} {(result.Moved == 1 ? "map" : "maps")}." + (result.AlreadyThere > 0 ? $" {result.AlreadyThere} were already there and were left in the downloads folder." : "");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
