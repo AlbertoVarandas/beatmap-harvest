@@ -6,7 +6,7 @@
 
 @if (_install is null)
 {
-    <div class="callout warn">osu! (stable) was not found. <a href="settings">Set the osu! folder in Settings</a>.</div>
+    <StableOnlyNotice What="skins" />
 }
 else if (_skins.Count == 0)
 {

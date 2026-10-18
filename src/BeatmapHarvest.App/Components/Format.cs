@@ -35,6 +35,13 @@ internal static class Format
     public static string Percent(double fraction, int decimals = 1) =>
         (Math.Clamp(fraction, 0, 1) * 100).ToString(decimals == 0 ? "0" : "0.#", CultureInfo.InvariantCulture) + "%";
 
+    public static string Client(BeatmapHarvest.Core.Library.OsuClient? client) => client switch
+    {
+        BeatmapHarvest.Core.Library.OsuClient.Lazer => "osu!lazer",
+        BeatmapHarvest.Core.Library.OsuClient.Stable => "osu! (stable)",
+        _ => "osu!",
+    };
+
     public static string Status(string? status) => status switch
     {
         null or "" => "unknown",

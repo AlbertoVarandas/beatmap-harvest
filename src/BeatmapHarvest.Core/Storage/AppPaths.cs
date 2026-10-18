@@ -24,6 +24,9 @@ public sealed class AppPaths(string root)
     public string CredentialsFile => Path.Combine(Root, "credentials.bin");
     public string AccountFile => Path.Combine(Root, "account.bin");
     public string LedgerFile => Path.Combine(Root, "done.json");
+
+    /// <summary>Cache of what each file in osu!lazer's store is (see LazerLibraryScanner).</summary>
+    public string LazerIndexFile => Path.Combine(Root, "lazer-index.json");
     public string DefaultDownloadsDirectory => Path.Combine(Root, "downloads");
     public string ProfilesDirectory => Path.Combine(Root, "profiles");
 

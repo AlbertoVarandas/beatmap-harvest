@@ -4,8 +4,9 @@ using BeatmapHarvest.Core.Storage;
 namespace BeatmapHarvest.App.Services;
 
 /// <summary>
-/// The local osu! stable installation and what is already in it: reads <c>osu!.db</c> (a copy, so osu! can keep running)
-/// and combines it with the Songs folder and Beatmap Harvest's own downloads. Cached until <see cref="Reload"/>.
+/// The osu! installation the app works with (osu!lazer or osu! stable) and what is already in it.
+/// For stable it reads <c>osu!.db</c> (a copy) and the Songs folder; for lazer it reads the .osu files in its store.
+/// Combined with Beatmap Harvest's own downloads. Cached until <see cref="Reload"/>.
 /// </summary>
 public sealed class OsuLibrary(SettingsStore settings, DownloadLedger ledger, AppPaths paths)
 {
@@ -14,10 +15,23 @@ public sealed class OsuLibrary(SettingsStore settings, DownloadLedger ledger, Ap
 
     public event Action? Changed;
 
-    public OsuInstall? Install => OsuInstall.Find(settings.Load().OsuDirectory);
+    public OsuClients Clients
+    {
+        get
+        {
+            var current = settings.Load();
+            return OsuClients.Detect(current.OsuDirectory, current.LazerDirectory);
+        }
+    }
+
+    /// <summary>The client in use: the one chosen in Settings, otherwise osu!lazer when installed.</summary>
+    public OsuClient? Client => Clients.Resolve(settings.Load().Client);
+
+    /// <summary>The osu! stable install, when it is the client in use.</summary>
+    public OsuInstall? Install => Client == OsuClient.Stable ? Clients.Stable : null;
 
     public string SongsDirectory =>
-        settings.Load().SongsDirectory ?? Install?.SongsDirectory ?? AppPaths.DefaultSongsDirectory;
+        settings.Load().SongsDirectory ?? Clients.Stable?.SongsDirectory ?? AppPaths.DefaultSongsDirectory;
 
     public string DownloadsDirectory => settings.Load().DownloadsDirectory ?? paths.DefaultDownloadsDirectory;
 
@@ -28,7 +42,7 @@ public sealed class OsuLibrary(SettingsStore settings, DownloadLedger ledger, Ap
             return _snapshot ??= Task.Run(Load);
     }
 
-    /// <summary>Forget the cached state (after downloads, moving files or changing folders).</summary>
+    /// <summary>Forget the cached state (after downloads, moving files or changing settings).</summary>
     public void Reload()
     {
         lock (_lock)
@@ -38,33 +52,70 @@ public sealed class OsuLibrary(SettingsStore settings, DownloadLedger ledger, Ap
 
     private LibrarySnapshot Load()
     {
-        var install = Install;
+        var clients = Clients;
+        var client = clients.Resolve(settings.Load().Client);
+        var downloads = DownloadsDirectory;
+        IReadOnlyList<LocalBeatmap> maps = [];
         OsuDatabase? database = null;
         string? error = null;
-        if (install is not null && File.Exists(install.DatabaseFile))
-        {
-            try
-            {
-                database = OsuDatabaseReader.Read(install.DatabaseFile);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
-            {
-                error = $"Could not read osu!.db ({ex.Message}). Only the Songs folder is used.";
-            }
-        }
+        var inGame = new HashSet<long>();
 
-        OwnershipIndex ownership;
         try
         {
-            ownership = OwnedMapsets.Collect(ledger, DownloadsDirectory, SongsDirectory, database);
+            if (client == OsuClient.Lazer)
+            {
+                maps = LazerLibraryScanner.Scan(clients.Lazer!.FilesDirectory, paths.LazerIndexFile);
+            }
+            else if (client == OsuClient.Stable)
+            {
+                var install = clients.Stable!;
+                if (File.Exists(install.DatabaseFile))
+                {
+                    try
+                    {
+                        database = OsuDatabaseReader.Read(install.DatabaseFile);
+                        maps = database.Beatmaps;
+                    }
+                    catch (InvalidDataException ex)
+                    {
+                        error = $"Could not read osu!.db ({ex.Message}). Only the Songs folder is used.";
+                    }
+                }
+                inGame.UnionWith(OwnedMapsetScanner.Scan(SongsDirectory, includeDirectories: true));
+            }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            ownership = new OwnershipIndex(database?.BeatmapsetIds() ?? [], new HashSet<long>(ledger.Snapshot()));
-            error = $"Could not read the downloads or Songs folder ({ex.Message}).";
+            error = $"Could not read the osu! library ({ex.Message}).";
         }
-        return new LibrarySnapshot(install, SongsDirectory, database, ownership, error);
+
+        inGame.UnionWith(maps.Where(m => m.BeatmapsetId > 0).Select(m => m.BeatmapsetId));
+        var downloaded = new HashSet<long>(ledger.Snapshot());
+        try
+        {
+            downloaded.UnionWith(OwnedMapsetScanner.Scan(downloads, includeDirectories: false));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            error ??= $"Could not read the downloads folder ({ex.Message}).";
+        }
+
+        return new LibrarySnapshot(clients, client, SongsDirectory, maps, database, new OwnershipIndex(inGame, downloaded), error);
     }
 }
 
-public sealed record LibrarySnapshot(OsuInstall? Install, string SongsDirectory, OsuDatabase? Database, OwnershipIndex Ownership, string? Error);
+/// <param name="Clients">Every osu! found on this PC.</param>
+/// <param name="Client">The one in use (null when none is installed).</param>
+/// <param name="Maps">Installed difficulties of the client in use.</param>
+/// <param name="Database">osu!.db, only with osu! stable (collections need its hashes).</param>
+public sealed record LibrarySnapshot(
+    OsuClients Clients,
+    OsuClient? Client,
+    string SongsDirectory,
+    IReadOnlyList<LocalBeatmap> Maps,
+    OsuDatabase? Database,
+    OwnershipIndex Ownership,
+    string? Error)
+{
+    public OsuInstall? Install => Client == OsuClient.Stable ? Clients.Stable : null;
+}

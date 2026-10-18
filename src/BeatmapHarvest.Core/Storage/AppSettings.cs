@@ -10,8 +10,14 @@ public sealed record AppSettings
     /// <summary>null → <see cref="AppPaths.DefaultDownloadsDirectory"/>.</summary>
     public string? DownloadsDirectory { get; init; }
 
+    /// <summary>Which osu! to work with; null → osu!lazer when installed, otherwise osu! stable.</summary>
+    public Library.OsuClient? Client { get; init; }
+
     /// <summary>The osu! stable install; null → detected automatically.</summary>
     public string? OsuDirectory { get; init; }
+
+    /// <summary>osu!lazer's data folder; null → detected automatically.</summary>
+    public string? LazerDirectory { get; init; }
 
     /// <summary>null → the Songs folder of the osu! install (from its config), or <see cref="AppPaths.DefaultSongsDirectory"/>.</summary>
     public string? SongsDirectory { get; init; }

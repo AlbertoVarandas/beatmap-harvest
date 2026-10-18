@@ -80,34 +80,38 @@ If you stop the download or close the app, start it again later: maps that were 
 
 ### 4. Add the maps to osu!
 
-On **Downloads**, click **Move downloads…**. By default this moves the `.osz` files into osu!'s Songs folder; the next time osu! starts, it imports them.
+- **osu!lazer**: on **Downloads**, click **Open downloads folder**, select the maps and drag them onto the osu!lazer window (or double-click them).
+- **osu! (stable)**: on **Downloads**, click **Move downloads…**. This moves the `.osz` files into osu!'s Songs folder; the next time osu! starts, it imports them.
 
-You can also open the downloads folder (**Open folder**) and double-click the `.osz` files, or drag them onto the osu! window.
+## osu! and osu!lazer
 
-## Your osu! library
+Beatmap Harvest detects both osu!lazer and osu! (stable). If you have both, it uses **osu!lazer** and tells you so; pick the other one in **Settings → osu!** if that's the one you play.
 
-**osu! library** shows the osu! (stable) installation Beatmap Harvest found, every beatmapset in it, and, for each harvested profile, how many of its maps are already in osu!, only downloaded, or missing. **Show missing** opens that profile's beatmaps with only the maps you don't have.
+**osu! library** shows the maps already in the osu! you use and, for each harvested profile, how many of its maps are already there, only downloaded, or missing. **Show missing** opens that profile's beatmaps with only the maps you don't have.
 
-Beatmap Harvest reads osu!'s own map list (`osu!.db`) and the Songs folder, so it also recognises maps whose folder names don't start with their id. It only reads them; osu! can stay open. osu!lazer is not supported.
+Beatmap Harvest only reads osu!'s files, so osu! can stay open. With osu!lazer it reads the beatmap files in lazer's storage; with osu! (stable) it reads `osu!.db` and the Songs folder.
 
-## Collections
+## Collections (osu! stable)
+
+osu!lazer keeps collections and skins in its own database, which other apps can't change, so these two tools work with osu! (stable).
 
 **Collections** shows your osu! collections and lets you create, rename and delete them and remove maps from them. On **Beatmaps**, **Add to collection…** adds every difficulty of the selected maps to a collection. Maps not in osu! yet can be included too: Beatmap Harvest looks them up on osu! (about one per second), and they appear in the collection as soon as you download them.
 
 Changes stay in Beatmap Harvest until you click **Save to osu!**. Close osu! first, because osu! rewrites its collections when it exits. Each save keeps a copy of the previous file next to it (`collection.db.<date>.bak`).
 
-## Skins
+## Skins (osu! stable)
 
 **Skins** lists the skins installed in osu! with their author and a preview of their main elements (cursor, hit circles, rank letters, mania notes…), and marks the one in use.
 
 ## Settings
 
-Each folder can be typed, picked with **Browse…**, or set back to its default with **Default**.
+Settings are saved as soon as you change them. Each folder can be typed, picked with **Browse…**, or set back to its default with **Default**.
 
+- **osu! → Use**: Automatic (osu!lazer when installed), osu!lazer, or osu! (stable).
+- **osu!lazer folder** / **osu! (stable) folder**: detected automatically; set them only if osu! is somewhere unusual.
+- **Songs folder** (stable): by default, the one osu! itself uses.
 - **Downloads folder**: where `.osz` files are saved.
-- **osu! folder**: your osu! (stable) installation. It is detected automatically; set it only if osu! is somewhere unusual.
-- **osu! Songs folder**: used to find maps you already have. By default, the Songs folder osu! itself uses.
-- **Move downloads to**: where **Move downloads…** puts the files. The default is the osu! Songs folder.
+- **Move downloads to** (stable): where **Move downloads…** puts the files. By default, the Songs folder.
 - **Parallel downloads**: how many maps download at the same time.
 
 ## FAQ
@@ -122,7 +126,7 @@ From public beatmap mirrors. Official osu! downloads require logging in to the w
 Mirrors don't always have every map, especially old or unranked ones. Try again later. Maps that already finished are not downloaded twice.
 
 **I use osu!lazer. Does it detect the maps I already have?**
-Not yet. Detection reads osu! stable's `Songs` folder, and lazer stores its files differently. You can still download maps and open the `.osz` files in lazer.
+Yes. A map you deleted in lazer may still count as installed until lazer cleans up its storage.
 
 **Why does it find fewer "best" scores than I have?**
 osu! only exposes your top 200 scores and the last 24 hours of recent plays. Most maps are found through your **most played** list, which includes every map you have played.
