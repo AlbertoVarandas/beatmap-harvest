@@ -9,6 +9,14 @@ public sealed class HarvestStore(AppPaths paths)
 
     public HarvestResult? Load(long userId) => AtomicFile.ReadJsonOrDefault<HarvestResult?>(paths.HarvestFile(userId), null);
 
+    /// <summary>Forgets a profile: removes its folder and everything saved in it.</summary>
+    public void Delete(long userId)
+    {
+        var directory = paths.ProfileDirectory(userId);
+        if (Directory.Exists(directory))
+            Directory.Delete(directory, recursive: true);
+    }
+
     /// <summary>Every saved harvest, newest first.</summary>
     public IReadOnlyList<HarvestResult> LoadAll()
     {

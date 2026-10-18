@@ -65,6 +65,30 @@ small { font-weight: normal; }
 }
 .nav-item:hover { background: var(--panel-2); }
 .nav-item.active { background: var(--pink); color: #fff; font-weight: 700; }
+.nav-sub {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0 0 4px 14px;
+    padding-left: 8px;
+    border-left: 2px solid var(--border);
+    max-height: 40vh;
+    overflow-y: auto;
+}
+.nav-sub-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 5px 8px;
+    border-radius: 5px;
+    font-size: 13px;
+}
+.nav-sub-item:hover { background: var(--panel-2); color: var(--text); }
+.nav-sub-item.active { background: var(--panel-2); color: var(--pink); font-weight: 700; }
+.nav-sub-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-sub-item small { opacity: .7; }
 /* .content fills the window and scrolls, so the scrollbar sits at the window edge; .page centres the column. */
 .content { flex: 1; min-width: 0; overflow-y: auto; }
 .page { max-width: 1200px; margin: 0 auto; padding: 28px 36px; }
