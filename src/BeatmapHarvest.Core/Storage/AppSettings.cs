@@ -7,6 +7,9 @@ public sealed record AppSettings
 {
     public string? LastProfile { get; init; }
 
+    /// <summary>Interface language (the app's own enum, stored by name); null → the Windows display language.</summary>
+    public string? LanguageName { get; init; }
+
     /// <summary>null → <see cref="AppPaths.DefaultDownloadsDirectory"/>.</summary>
     public string? DownloadsDirectory { get; init; }
 

@@ -28,7 +28,7 @@ public sealed class DownloadItem(long setId, string artist, string title)
 /// App-wide download state, like <see cref="HarvestSession"/>: a running download survives navigation.
 /// Components subscribe to <see cref="Changed"/> and re-render.
 /// </summary>
-public sealed class DownloadSession(DownloadRunner runner, BeatmapDownloader downloader, SettingsStore settings, AppPaths paths, OsuLibrary library) : IDisposable
+public sealed class DownloadSession(DownloadRunner runner, BeatmapDownloader downloader, SettingsStore settings, AppPaths paths, OsuLibrary library, Localizer l) : IDisposable
 {
     private readonly Lock _lock = new();
     private Dictionary<long, DownloadItem> _byId = [];
@@ -124,11 +124,11 @@ public sealed class DownloadSession(DownloadRunner runner, BeatmapDownloader dow
         }
         catch (OperationCanceledException)
         {
-            Error = "Cancelled. Finished downloads are kept; start again to resume.";
+            Error = l["Cancelled. Finished downloads are kept; start again to resume."];
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Error = $"Disk error: {ex.Message}";
+            Error = l.F("Disk error: {0}", ex.Message);
         }
         finally
         {

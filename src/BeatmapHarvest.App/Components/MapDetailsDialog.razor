@@ -6,7 +6,7 @@
     <div class="modal" role="dialog" aria-label="@Mapset.Title" tabindex="-1" @ref="_root"
          @onclick:stopPropagation @onkeydown="OnKeyDown">
         <div class="modal-cover" style="background-image:url('@CoverUrl')">
-            <button class="modal-close" title="Close (Esc)" @onclick="CloseAsync">✕</button>
+            <button class="modal-close" title="@L["Close (Esc)"]" @onclick="CloseAsync">✕</button>
             <div class="modal-heading">
                 <h2>@Mapset.Title</h2>
                 <div>@Mapset.Artist</div>
@@ -22,36 +22,36 @@
                 <span class="tag status-@(Mapset.Status ?? "unknown")">@Format.Status(Mapset.Status)</span>
                 @if (Owned)
                 {
-                    <span class="tag have">Have it</span>
+                    <span class="tag have">@L["In osu!"]</span>
                 }
-                @if (_details?.Video == true) { <span class="tag">video</span> }
-                @if (_details?.Storyboard == true) { <span class="tag">storyboard</span> }
+                @if (_details?.Video == true) { <span class="tag">@L["video"]</span> }
+                @if (_details?.Storyboard == true) { <span class="tag">@L["storyboard"]</span> }
             </div>
 
             <div class="detail-grid">
-                <div><span>Mapped by</span><b>@Mapset.Creator</b></div>
-                <div><span>Length</span><b>@Format.Length(Mapset.LengthSeconds)</b></div>
+                <div><span>@L["Mapped by"]</span><b>@Mapset.Creator</b></div>
+                <div><span>@L["Length"]</span><b>@Format.Length(Mapset.LengthSeconds)</b></div>
                 <div><span>BPM</span><b>@(_details is { Bpm: > 0 } d ? Format.Number(d.Bpm) : "–")</b></div>
-                <div><span>Your plays</span><b>@Mapset.TotalPlays</b></div>
-                <div><span>Ranked</span><b>@Date(_details?.RankedDate)</b></div>
-                <div><span>Submitted</span><b>@Date(_details?.SubmittedDate)</b></div>
-                <div><span>Global plays</span><b>@(_details is null ? "–" : _details.PlayCount.ToString("N0", CultureInfo.CurrentCulture))</b></div>
-                <div><span>Favourites</span><b>@(_details is null ? "–" : _details.FavouriteCount.ToString("N0", CultureInfo.CurrentCulture))</b></div>
+                <div><span>@L["Plays"]</span><b>@Mapset.TotalPlays</b></div>
+                <div><span>@L["Ranked"]</span><b>@Date(_details?.RankedDate)</b></div>
+                <div><span>@L["Submitted"]</span><b>@Date(_details?.SubmittedDate)</b></div>
+                <div><span>@L["Global plays"]</span><b>@(_details is null ? "–" : _details.PlayCount.ToString("N0", Localizer.ActiveCulture))</b></div>
+                <div><span>@L["Favourites"]</span><b>@(_details is null ? "–" : _details.FavouriteCount.ToString("N0", Localizer.ActiveCulture))</b></div>
                 @if (!string.IsNullOrWhiteSpace(_details?.Source))
                 {
-                    <div class="wide"><span>Source</span><b>@_details.Source</b></div>
+                    <div class="wide"><span>@L["Source"]</span><b>@_details.Source</b></div>
                 }
             </div>
 
             <div class="actions">
                 @if (Mapset.Preview is not null)
                 {
-                    <button class="btn" @onclick="() => _playing = !_playing">@(_playing ? "■ Stop preview" : "▶ Play preview")</button>
+                    <button class="btn" @onclick="() => _playing = !_playing">@(_playing ? "■ " + L["Stop preview"] : "▶ " + L["Play preview"])</button>
                 }
-                <button class="btn" @onclick="() => ShellLauncher.Open(Mapset.Url)">Open on osu!</button>
+                <button class="btn" @onclick="() => ShellLauncher.Open(Mapset.Url)">@L["Open on osu!"]</button>
                 @if (_loading)
                 {
-                    <span class="spinner"></span><span class="muted">Loading details…</span>
+                    <span class="spinner"></span><span class="muted">@L["Loading details…"]</span>
                 }
                 else if (_error is not null)
                 {
@@ -62,9 +62,9 @@
             <table class="table diff-table">
                 <thead>
                     <tr>
-                        <th>Difficulty</th><th class="num">Stars</th><th class="num">Length</th><th class="num">BPM</th>
+                        <th>@L["Difficulty"]</th><th class="num">@L["Stars"]</th><th class="num">@L["Length"]</th><th class="num">BPM</th>
                         <th class="num">CS</th><th class="num">AR</th><th class="num">OD</th><th class="num">HP</th>
-                        <th class="num">Combo</th><th class="num">Your plays</th>
+                        <th class="num">@L["Combo"]</th><th class="num">@L["Plays"]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -79,8 +79,8 @@
                             <td class="num">@Value(row.Api?.Ar)</td>
                             <td class="num">@Value(row.Api?.Accuracy)</td>
                             <td class="num">@Value(row.Api?.Drain)</td>
-                            <td class="num">@(row.Api?.MaxCombo?.ToString(CultureInfo.CurrentCulture) ?? "–")</td>
-                            <td class="num">@(row.Plays?.ToString(CultureInfo.CurrentCulture) ?? "–")</td>
+                            <td class="num">@(row.Api?.MaxCombo?.ToString(Localizer.ActiveCulture) ?? "–")</td>
+                            <td class="num">@(row.Plays?.ToString(Localizer.ActiveCulture) ?? "–")</td>
                         </tr>
                     }
                 </tbody>
@@ -121,11 +121,11 @@
         }
         catch (OsuApiException ex)
         {
-            _error = ex.StatusCode == System.Net.HttpStatusCode.NotFound ? "This map is no longer on osu!." : ex.Message;
+            _error = L[ex.StatusCode == System.Net.HttpStatusCode.NotFound ? "This map is no longer on osu!." : ex.Message];
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            _error = "Could not reach osu! for the full details.";
+            _error = L["Could not reach osu! for the full details."];
         }
         finally
         {
@@ -169,5 +169,5 @@
     private static string Value(double? value) => value is { } v ? Format.Number(v) : "–";
 
     private static string Date(DateTimeOffset? date) =>
-        date?.ToLocalTime().ToString("d", CultureInfo.CurrentCulture) ?? "–";
+        date?.ToLocalTime().ToString("d", Localizer.ActiveCulture) ?? "–";
 }

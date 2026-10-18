@@ -1,11 +1,11 @@
 @* Totals of a harvested profile and its most played difficulties (click one for its details). *@
 
 <div class="stats">
-    <div class="stat"><b>@Summary.Mapsets</b><span>beatmapsets</span></div>
-    <div class="stat"><b>@Summary.Difficulties</b><span>difficulties</span></div>
-    <div class="stat"><b>@Summary.Plays</b><span>plays</span></div>
-    <div class="stat"><b>@Format.Duration(Summary.TotalSongLength)</b><span>of music</span></div>
-    <div class="stat"><b>@Summary.MinStars.ToString("0.##", CultureInfo.CurrentCulture)–@Summary.MaxStars.ToString("0.##", CultureInfo.CurrentCulture)★</b><span>average @Summary.AverageStars.ToString("0.##", CultureInfo.CurrentCulture)★</span></div>
+    <div class="stat"><b>@Summary.Mapsets</b><span>@L["beatmapsets"]</span></div>
+    <div class="stat"><b>@Summary.Difficulties</b><span>@L["difficulties"]</span></div>
+    <div class="stat"><b>@Summary.Plays</b><span>@L["plays"]</span></div>
+    <div class="stat"><b>@Format.Duration(Summary.TotalSongLength)</b><span>@L["of music"]</span></div>
+    <div class="stat"><b>@Summary.MinStars.ToString("0.##", L.Culture)–@Summary.MaxStars.ToString("0.##", L.Culture)★</b><span>@L.F("average {0:0.##}★", Summary.AverageStars)</span></div>
 </div>
 
 <div class="chips">
@@ -17,15 +17,15 @@
 
 @if (Summary.MostPlayed.Count > 0)
 {
-    <h3>Most played</h3>
+    <h3>@L["Most played"]</h3>
     <table class="table clickable">
         <tbody>
             @foreach (var entry in Summary.MostPlayed)
             {
-                <tr title="Details" @onclick="() => _details = entry.Mapset">
+                <tr title="@L["Details"]" @onclick="() => _details = entry.Mapset">
                     <td class="num">@entry.Difficulty.Plays×</td>
                     <td>@entry.Mapset.Artist – @entry.Mapset.Title <span class="muted">[@entry.Difficulty.Version]</span></td>
-                    <td class="num">@entry.Difficulty.Stars.ToString("0.00", CultureInfo.CurrentCulture)★</td>
+                    <td class="num">@entry.Difficulty.Stars.ToString("0.00", L.Culture)★</td>
                 </tr>
             }
         </tbody>

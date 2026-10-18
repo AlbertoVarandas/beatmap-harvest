@@ -8,22 +8,32 @@
 @inject OsuFilesHost FilesHost
 @inject SetupState Setup
 
-<h1>Settings</h1>
+<h1>@L["Settings"]</h1>
 @if (!Setup.HasCredentials)
 {
-    <div class="callout warn">Welcome! Add your osu! API credentials below to start using Beatmap Harvest.</div>
+    <div class="callout warn">@L["Welcome! Add your osu! API credentials below to start using Beatmap Harvest."]</div>
 }
 
 <section class="panel">
-    <h2>osu! API credentials</h2>
-    <p class="muted">A free key from your osu! account, needed to read profiles. The secret is stored encrypted.</p>
+    <div class="field">
+        <span>@L["Language"]</span>
+        <div class="segmented">
+            <button class="@(L.Language == AppLanguage.English ? "on" : "")" @onclick="() => L.Set(AppLanguage.English)">English</button>
+            <button class="@(L.Language == AppLanguage.Portuguese ? "on" : "")" @onclick="() => L.Set(AppLanguage.Portuguese)">Português (Portugal)</button>
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>@L["osu! API credentials"]</h2>
+    <p class="muted">@L["A free key from your osu! account, needed to read profiles. The secret is stored encrypted."]</p>
     <ol class="steps">
-        <li>Open your <a href="" @onclick="OpenOAuthPage" @onclick:preventDefault>osu! account settings</a> → <b>OAuth</b> → <b>New OAuth Application</b>.</li>
+        <li><a href="" @onclick="OpenOAuthPage" @onclick:preventDefault>@L["Open your osu! account settings"]</a> → <b>OAuth</b> → <b>New OAuth Application</b>.</li>
         <li>
-            Give it any name and paste this as the callback URL: <code>@OsuAccount.RedirectUri</code>
-            <button class="btn small" @onclick="CopyCallback">@(_copied ? "Copied" : "Copy")</button>
+            @L["Give it any name and paste this as the callback URL:"] <code>@OsuAccount.RedirectUri</code>
+            <button class="btn small" @onclick="CopyCallback">@L[_copied ? "Copied" : "Copy"]</button>
         </li>
-        <li>Click <b>Edit</b> on it and copy the <b>Client ID</b> and the <b>Client Secret</b> here.</li>
+        <li>@L.Html("Click <b>Edit</b> on it and copy the <b>Client ID</b> and the <b>Client Secret</b> here.")</li>
     </ol>
 
     <div class="grid-2">
@@ -33,16 +43,16 @@
         </label>
         <label class="field">
             <span>Client secret</span>
-            <input class="input" type="password" autocomplete="off" placeholder="@(_hasSaved ? "(saved – type to replace)" : "")"
+            <input class="input" type="password" autocomplete="off" placeholder="@(_hasSaved ? L["(saved – type to replace)"] : "")"
                    @bind="_clientSecret" @bind:event="oninput" disabled="@_busy" />
         </label>
     </div>
 
     <div class="actions">
-        <button class="btn primary" disabled="@_busy" @onclick="TestAndSaveAsync">Test &amp; save</button>
+        <button class="btn primary" disabled="@_busy" @onclick="TestAndSaveAsync">@L["Test & save"]</button>
         @if (_hasSaved)
         {
-            <button class="btn" disabled="@_busy" @onclick="Remove">Remove credentials</button>
+            <button class="btn" disabled="@_busy" @onclick="Remove">@L["Remove credentials"]</button>
         }
         @if (_busy)
         {
@@ -64,52 +74,52 @@
         var inUse = clients.Resolve(_client);
     }
     <div class="client-list">
-        <span class="tag @(clients.Lazer is null ? "" : "have")">osu!lazer @(clients.Lazer is null ? "not found" : "found")</span>
-        <span class="tag @(clients.Stable is null ? "" : "have")">osu! (stable) @(clients.Stable is null ? "not found" : "found")</span>
+        <span class="tag @(clients.Lazer is null ? "" : "have")">osu!lazer @L[clients.Lazer is null ? "not found" : "found"]</span>
+        <span class="tag @(clients.Stable is null ? "" : "have")">osu! (stable) @L[clients.Stable is null ? "not found" : "found"]</span>
     </div>
     <div class="field">
-        <span>Use</span>
+        <span>@L["Use"]</span>
         <div class="segmented">
-            <button class="@(_client is null ? "on" : "")" @onclick="() => SetClient(null)">Automatic</button>
+            <button class="@(_client is null ? "on" : "")" @onclick="() => SetClient(null)">@L["Automatic"]</button>
             <button class="@(_client == OsuClient.Lazer ? "on" : "")" disabled="@(clients.Lazer is null)" @onclick="() => SetClient(OsuClient.Lazer)">osu!lazer</button>
             <button class="@(_client == OsuClient.Stable ? "on" : "")" disabled="@(clients.Stable is null)" @onclick="() => SetClient(OsuClient.Stable)">osu! (stable)</button>
         </div>
     </div>
     @if (clients.BothFound && _client is null)
     {
-        <div class="callout warn">Both are installed, so osu!lazer is used. Pick one above if you play the other.</div>
+        <div class="callout warn">@L["Both are installed, so osu!lazer is used. Pick one above if you play the other."]</div>
     }
     else if (inUse is null)
     {
-        <div class="callout warn">No osu! found. If it is installed somewhere unusual, set its folder below.</div>
+        <div class="callout warn">@L["No osu! found. If it is installed somewhere unusual, set its folder below."]</div>
     }
 
-    <FolderField Label="osu!lazer folder" Hint="detected automatically"
-                  ValueChanged="v => SaveFolders(() => _lazer = v)" DefaultPath="@(LazerInstall.Find(null)?.DataDirectory ?? LazerInstall.DefaultDataDirectory)" />
-    <FolderField Label="osu! (stable) folder" Hint="detected automatically"
-                  ValueChanged="v => SaveFolders(() => _osu = v)" DefaultPath="@(OsuInstall.Find(null)?.Root ?? OsuInstall.DefaultRoot)" />
+    <FolderField Label="@L["osu!lazer folder"]" Hint="@L["detected automatically"]" Value="@_lazer"
+                 ValueChanged="v => SaveFolders(() => _lazer = v)" DefaultPath="@(LazerInstall.Find(null)?.DataDirectory ?? LazerInstall.DefaultDataDirectory)" />
+    <FolderField Label="@L["osu! (stable) folder"]" Hint="@L["detected automatically"]" Value="@_osu"
+                 ValueChanged="v => SaveFolders(() => _osu = v)" DefaultPath="@(OsuInstall.Find(null)?.Root ?? OsuInstall.DefaultRoot)" />
     @if (inUse == OsuClient.Stable)
     {
-        <FolderField Label="Songs folder"
-                      ValueChanged="v => SaveFolders(() => _songs = v)" DefaultPath="@DetectedSongs" />
+        <FolderField Label="@L["Songs folder"]" Value="@_songs"
+                     ValueChanged="v => SaveFolders(() => _songs = v)" DefaultPath="@DetectedSongs" />
     }
 </section>
 
 <section class="panel">
-    <h2>Downloads</h2>
-    <FolderField Label="Downloads folder"
-                  ValueChanged="v => SaveFolders(() => _downloads = v)" DefaultPath="@Paths.DefaultDownloadsDirectory" />
+    <h2>@L["Downloads"]</h2>
+    <FolderField Label="@L["Downloads folder"]" Value="@_downloads"
+                 ValueChanged="v => SaveFolders(() => _downloads = v)" DefaultPath="@Paths.DefaultDownloadsDirectory" />
     @if (inUse == OsuClient.Stable)
     {
-        <FolderField Label="Move downloads to" Hint="default: the Songs folder"
-                      ValueChanged="v => SaveFolders(() => _moveTo = v)" DefaultPath="@(_songs ?? DetectedSongs)" />
+        <FolderField Label="@L["Move downloads to"]" Hint="@L["default: the Songs folder"]" Value="@_moveTo"
+                     ValueChanged="v => SaveFolders(() => _moveTo = v)" DefaultPath="@(_songs ?? DetectedSongs)" />
     }
     <label class="field narrow">
-        <span>Parallel downloads</span>
+        <span>@L["Parallel downloads"]</span>
         <input class="input" type="number" min="1" max="6" @bind="_parallel" @bind:after="() => SaveFolders(() => { })" />
     </label>
     <div class="actions">
-        <button class="btn" @onclick="() => ShellLauncher.OpenFolder(Paths.Root)">Open data folder</button>
+        <button class="btn" @onclick="() => ShellLauncher.OpenFolder(Paths.Root)">@L["Open data folder"]</button>
     </div>
 </section>
 
@@ -192,7 +202,7 @@
             _hasSaved = true;
             _clientSecret = "";
             _credentialOk = true;
-            _credentialMessage = "Connected to the osu! API. Credentials saved.";
+            _credentialMessage = L["Connected to the osu! API. Credentials saved."];
         }
         catch (OsuApiException ex)
         {
@@ -200,7 +210,7 @@
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            Fail($"Could not reach osu.ppy.sh: {ex.Message}");
+            Fail(L.F("Could not reach osu.ppy.sh: {0}", ex.Message));
         }
         finally
         {
@@ -217,13 +227,14 @@
         _clientId = "";
         _clientSecret = "";
         _credentialOk = true;
-        _credentialMessage = "Credentials removed.";
+        _credentialMessage = L["Credentials removed."];
     }
 
     private void Fail(string message)
     {
         _credentialOk = false;
-        _credentialMessage = message;
+        // Fixed English messages (ours or osu!'s) are translated; anything else is shown as is.
+        _credentialMessage = L[message];
     }
 
     private void SetClient(OsuClient? client) => SaveFolders(() => _client = client);

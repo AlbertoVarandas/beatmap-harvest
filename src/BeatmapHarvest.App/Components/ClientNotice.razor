@@ -4,8 +4,8 @@
 @if (Snapshot.Clients.BothFound && Settings.Load().Client is null)
 {
     <div class="callout warn">
-        Both osu! and osu!lazer are installed. Using <b>@Format.Client(Snapshot.Client)</b>.
-        <a href="settings">Choose another in Settings</a>.
+        @L.Html("Both osu! and osu!lazer are installed. Using <b>{0}</b>.", Format.Client(Snapshot.Client))
+        <a href="settings">@L["Choose another in Settings"]</a>.
     </div>
 }
 

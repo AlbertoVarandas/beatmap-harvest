@@ -7,9 +7,11 @@ namespace BeatmapHarvest.App.Services;
 /// App-wide harvest state. Lives outside the pages so a running harvest survives navigation.
 /// Components subscribe to <see cref="Changed"/> and re-render.
 /// </summary>
-public sealed class HarvestSession(ProfileHarvester harvester, ProfileLibrary profiles) : IDisposable
+public sealed class HarvestSession(ProfileHarvester harvester, ProfileLibrary profiles, Localizer l) : IDisposable
 {
     private const int MaxLogLines = 300;
+
+    private Localizer Text => l;
 
     private readonly Lock _lock = new();
     private readonly List<string> _log = [];
@@ -91,15 +93,15 @@ public sealed class HarvestSession(ProfileHarvester harvester, ProfileLibrary pr
         }
         catch (OperationCanceledException)
         {
-            Error = "Cancelled.";
+            Error = l["Cancelled."];
         }
         catch (OsuApiException ex)
         {
-            Error = ex.Message;
+            Error = l[ex.Message];
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException)
         {
-            Error = $"Network or disk error: {ex.Message}";
+            Error = l.F("Network or disk error: {0}", ex.Message);
         }
         finally
         {
@@ -137,9 +139,10 @@ public sealed class HarvestSession(ProfileHarvester harvester, ProfileLibrary pr
     {
         public void Report(HarvestProgress value)
         {
+            var message = session.Text.F(value.Template, value.Args);
             session.Fraction = value.Fraction;
-            session.Status = value.Message;
-            session.Append(value.Message);
+            session.Status = message;
+            session.Append(message);
         }
     }
 }

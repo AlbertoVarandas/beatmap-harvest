@@ -107,6 +107,7 @@ Changes stay in Beatmap Harvest until you click **Save to osu!**. Close osu! fir
 
 Settings are saved as soon as you change them. Each folder can be typed, picked with **Browse…**, or set back to its default with **Default**.
 
+- **Language**: English or Português (Portugal). By default, the language of Windows. Dates and numbers follow it too.
 - **osu! → Use**: Automatic (osu!lazer when installed), osu!lazer, or osu! (stable).
 - **osu!lazer folder** / **osu! (stable) folder**: detected automatically; set them only if osu! is somewhere unusual.
 - **Songs folder** (stable): by default, the one osu! itself uses.

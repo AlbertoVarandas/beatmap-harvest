@@ -58,6 +58,7 @@ public static class ServiceRegistration
         });
         services.AddSingleton<DownloadRunner>();
 
+        services.AddSingleton<Localizer>();
         services.AddSingleton<SetupState>();
         services.AddSingleton<ProfileLibrary>();
         services.AddSingleton<HarvestSession>();

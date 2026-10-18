@@ -5,7 +5,7 @@
 @inject NavigationManager Nav
 
 <section class="panel">
-    <h2>osu! account <small class="muted">optional</small></h2>
+    <h2>@L["osu! account"] <small class="muted">@L["optional"]</small></h2>
 
     @if (Account.User is { } user)
     {
@@ -16,31 +16,31 @@
             }
             <div class="account-text">
                 <b>@user.Username</b>
-                <div class="muted">Signed in. Harvest now has <b>My profile</b> and your friend list.</div>
+                <div class="muted">@L["Signed in. Your profile stays at the top of Beatmaps, and My friends is available."]</div>
             </div>
-            <button class="btn" disabled="@_busy" @onclick="SignOutAsync">Sign out</button>
+            <button class="btn" disabled="@_busy" @onclick="SignOutAsync">@L["Sign out"]</button>
         </div>
     }
     else
     {
         <p class="muted">
-            Sign in to get your own profile and your friends. You approve the app on the osu! website; it never sees your password.
-            If your OAuth application has no callback URL yet, add <code>@OsuAccount.RedirectUri</code>
-            <button class="btn small" @onclick="CopyRedirect">@(_copied ? "Copied" : "Copy")</button>
+            @L["Sign in to get your own profile and your friends. You approve the app on the osu! website; it never sees your password."]
+            @L["If your OAuth application has no callback URL yet, add"] <code>@OsuAccount.RedirectUri</code>
+            <button class="btn small" @onclick="CopyRedirect">@L[_copied ? "Copied" : "Copy"]</button>
         </p>
         <div class="actions">
             @if (Account.IsSigningIn)
             {
                 <span class="spinner"></span>
-                <span>Waiting for you to approve in the browser…</span>
-                <button class="btn" @onclick="Account.CancelSignIn">Cancel</button>
+                <span>@L["Waiting for you to approve in the browser…"]</span>
+                <button class="btn" @onclick="Account.CancelSignIn">@L["Cancel"]</button>
             }
             else
             {
-                <button class="btn primary" disabled="@(!HasCredentials)" @onclick="SignInAsync">Sign in with osu!</button>
+                <button class="btn primary" disabled="@(!HasCredentials)" @onclick="SignInAsync">@L["Sign in with osu!"]</button>
                 @if (!HasCredentials)
                 {
-                    <span class="muted">Save your client id and secret first.</span>
+                    <span class="muted">@L["Save your client id and secret first."]</span>
                 }
             }
         </div>
@@ -69,7 +69,7 @@
         {
             await Account.SignInAsync();
             _ok = true;
-            _message = $"Signed in as {Account.User?.Username}.";
+            _message = L.F("Signed in as {0}.", Account.User?.Username);
 
             // Signing in harvests your own profile right away; Beatmaps shows the progress and then your maps.
             if (Account.User is { } me)
@@ -81,12 +81,12 @@
         catch (OsuApiException ex)
         {
             _ok = false;
-            _message = ex.Message;
+            _message = L[ex.Message];
         }
         catch (HttpRequestException ex)
         {
             _ok = false;
-            _message = $"Could not reach osu.ppy.sh: {ex.Message}";
+            _message = L.F("Could not reach osu.ppy.sh: {0}", ex.Message);
         }
     }
 
@@ -97,7 +97,7 @@
         {
             await Account.SignOutAsync();
             _ok = true;
-            _message = "Signed out.";
+            _message = L["Signed out."];
         }
         finally
         {
