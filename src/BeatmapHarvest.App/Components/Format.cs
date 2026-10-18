@@ -28,6 +28,9 @@ internal static class Format
 
     public static string Stars(double stars) => stars.ToString("0.00", CultureInfo.CurrentCulture);
 
+    /// <summary>A map attribute (CS, AR, BPM…): whole numbers without decimals, otherwise one decimal.</summary>
+    public static string Number(double value) => value.ToString("0.#", CultureInfo.CurrentCulture);
+
     /// <summary>A 0–1 fraction as a CSS-safe percentage, e.g. <c>42.5%</c>.</summary>
     public static string Percent(double fraction, int decimals = 1) =>
         (Math.Clamp(fraction, 0, 1) * 100).ToString(decimals == 0 ? "0" : "0.#", CultureInfo.InvariantCulture) + "%";

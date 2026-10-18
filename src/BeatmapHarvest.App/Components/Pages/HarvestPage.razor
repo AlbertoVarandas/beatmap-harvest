@@ -105,12 +105,12 @@
 
         @if (s.MostPlayed.Count > 0)
         {
-            <h3>Most played</h3>
-            <table class="table">
+            <h3>Most played <small class="muted">click a song for its details</small></h3>
+            <table class="table clickable">
                 <tbody>
                     @foreach (var entry in s.MostPlayed)
                     {
-                        <tr>
+                        <tr title="Show details" @onclick="() => _details = entry.Mapset">
                             <td class="num">@entry.Difficulty.Plays×</td>
                             <td>@entry.Mapset.Artist – @entry.Mapset.Title <span class="muted">[@entry.Difficulty.Version]</span></td>
                             <td class="num">@entry.Difficulty.Stars.ToString("0.00", CultureInfo.CurrentCulture)★</td>
@@ -122,7 +122,13 @@
     </section>
 }
 
+@if (_details is not null)
+{
+    <MapDetailsDialog Mapset="_details" OnClose="() => _details = null" />
+}
+
 @code {
+    private MapsetInfo? _details;
     private string _profileInput = "";
     private string? _inputError;
     private bool _hasCredentials;

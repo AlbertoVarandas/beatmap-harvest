@@ -53,6 +53,7 @@ To look up a username made only of digits, put `@` in front of it (`@12345`); ot
 Some useful extras:
 
 - Click a cover to hear a preview of the song.
+- Click **i** on a map (or a song in **Most played** on the Harvest page) to see its details: cover, BPM, length, ranked date, global plays, and every difficulty with its stars, CS, AR, OD, HP, max combo and your plays.
 - Maps you already have are tagged **Have it** and skipped. To include them anyway, untick **Skip maps I already have**.
 - Use the search box to find a song, artist, mapper or difficulty.
 - **Outside the filters: Dim / Hide** chooses whether maps and difficulties that don't match the filters are shown faded or left out of the list.
