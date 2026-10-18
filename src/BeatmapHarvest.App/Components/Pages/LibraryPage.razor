@@ -1,0 +1,196 @@
+@page "/library"
+@implements IDisposable
+@inject OsuLibrary Library
+@inject ProfileLibrary Profiles
+@inject SelectorState Selector
+@inject NavigationManager Nav
+
+<div class="panel-head">
+    <h1>osu! library</h1>
+    <button class="btn small" disabled="@(_snapshot is null)" @onclick="Library.Reload">Reload</button>
+</div>
+<p class="muted">The maps already in your osu! (stable) installation, read from <code>osu!.db</code> and the Songs folder, compared with the profiles you harvested.</p>
+
+@if (_snapshot is null)
+{
+    <div class="actions"><span class="spinner"></span> Reading your osu! library…</div>
+}
+else
+{
+    var install = _snapshot.Install;
+    var db = _snapshot.Database;
+
+    @if (_snapshot.Error is not null)
+    {
+        <div class="callout warn">@_snapshot.Error</div>
+    }
+
+    <section class="panel">
+        <h2>Installation</h2>
+        @if (install is null)
+        {
+            <div class="callout warn">
+                osu! (stable) was not found in the usual places. <a href="settings">Set the osu! folder in Settings</a>.
+                osu!lazer is not supported: it stores maps in its own database instead of a Songs folder.
+            </div>
+        }
+        else
+        {
+            <div class="detail-grid">
+                <div class="wide"><span>osu! folder</span><b>@install.Root</b></div>
+                <div class="wide"><span>Songs folder</span><b>@_snapshot.SongsDirectory</b></div>
+                <div><span>Beatmapsets</span><b>@_sets.Count</b></div>
+                <div><span>Difficulties</span><b>@(db?.Beatmaps.Count.ToString(CultureInfo.CurrentCulture) ?? "–")</b></div>
+                <div><span>osu!.db version</span><b>@(db?.Version.ToString(CultureInfo.InvariantCulture) ?? "not read")</b></div>
+                <div><span>Player</span><b>@(string.IsNullOrEmpty(db?.PlayerName) ? "–" : db.PlayerName)</b></div>
+            </div>
+            <div class="actions">
+                <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(_snapshot.SongsDirectory)">Open Songs folder</button>
+            </div>
+        }
+    </section>
+
+    @if (_profiles.Count > 0)
+    {
+        <section class="panel">
+            <h2>Your harvests compared</h2>
+            <table class="table">
+                <thead>
+                    <tr><th>Profile</th><th class="num">Beatmapsets</th><th class="num">In osu!</th><th class="num">Downloaded only</th><th class="num">Missing</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _profiles)
+                    {
+                        <tr>
+                            <td>@row.Username</td>
+                            <td class="num">@row.Total</td>
+                            <td class="num">@row.InGame</td>
+                            <td class="num">@row.Downloaded</td>
+                            <td class="num"><b>@row.Missing</b></td>
+                            <td class="num"><button class="btn small" disabled="@(row.Missing == 0)" @onclick="() => ShowMissing(row.UserId)">Show missing</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+    }
+
+    @if (_sets.Count > 0)
+    {
+        <section class="panel">
+            <div class="panel-head">
+                <h2>Installed beatmapsets <small class="muted">@Shown().Count() of @_sets.Count</small></h2>
+                <input class="input small" placeholder="Search" @bind="_search" @bind:event="oninput" />
+            </div>
+            <div class="local-list">
+                <Virtualize Items="Shown().ToList()" ItemSize="58" Context="set">
+                    <div class="local-row">
+                        <div class="local-cover">
+                            @if (set.SetId > 0)
+                            {
+                                <img src="@CoverUrl(set.SetId)" alt="" loading="lazy" onerror="this.style.visibility='hidden'" />
+                            }
+                        </div>
+                        <div class="local-text">
+                            <div class="map-title"><b>@set.Title</b> <span class="muted">by @set.Artist</span></div>
+                            <div class="map-meta">
+                                <span>mapped by @set.Creator</span>
+                                <span>@set.Difficulties @(set.Difficulties == 1 ? "difficulty" : "difficulties")</span>
+                                @foreach (var mode in set.Modes)
+                                {
+                                    <span><i class="dot mode-@mode"></i> @Format.Mode(mode)</span>
+                                }
+                                @if (set.SetId <= 0)
+                                {
+                                    <span class="tag">not on osu! website</span>
+                                }
+                            </div>
+                        </div>
+                        @if (set.SetId > 0)
+                        {
+                            <button class="btn small" @onclick="() => ShellLauncher.Open(SetUrl(set.SetId))">osu! page</button>
+                        }
+                    </div>
+                </Virtualize>
+            </div>
+        </section>
+    }
+}
+
+@code {
+    private sealed record LocalSet(long SetId, string Artist, string Title, string Creator, int Difficulties, IReadOnlyList<string> Modes);
+    private sealed record ProfileRow(long UserId, string Username, int Total, int InGame, int Downloaded, int Missing);
+
+    private LibrarySnapshot? _snapshot;
+    private List<LocalSet> _sets = [];
+    private List<ProfileRow> _profiles = [];
+    private string _search = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Library.Changed += OnChanged;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _snapshot = null;
+        var snapshot = await Library.GetAsync();
+        _sets = (snapshot.Database?.Beatmaps ?? [])
+            .GroupBy(b => b.BeatmapsetId > 0 ? b.BeatmapsetId.ToString(CultureInfo.InvariantCulture) : "folder:" + b.FolderName, StringComparer.Ordinal)
+            .Select(g =>
+            {
+                var first = g.First();
+                return new LocalSet(first.BeatmapsetId, first.Artist, first.Title, first.Creator, g.Count(),
+                    g.Select(b => b.Mode).Distinct().Order(StringComparer.Ordinal).ToList());
+            })
+            .OrderBy(s => s.Artist, StringComparer.CurrentCultureIgnoreCase)
+            .ThenBy(s => s.Title, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        _profiles = Profiles.Profiles
+            .Select(p => Profiles.Get(p.UserId))
+            .OfType<HarvestResult>()
+            .Select(r =>
+            {
+                var states = r.Mapsets.Select(m => snapshot.Ownership.Of(m.Id)).ToList();
+                return new ProfileRow(r.UserId, r.Username, states.Count,
+                    states.Count(s => s == MapOwnership.InGame),
+                    states.Count(s => s == MapOwnership.Downloaded),
+                    states.Count(s => s == MapOwnership.None));
+            })
+            .ToList();
+        _snapshot = snapshot;
+    }
+
+    private IEnumerable<LocalSet> Shown() => string.IsNullOrWhiteSpace(_search)
+        ? _sets
+        : _sets.Where(s => s.Title.Contains(_search, StringComparison.CurrentCultureIgnoreCase)
+                           || s.Artist.Contains(_search, StringComparison.CurrentCultureIgnoreCase)
+                           || s.Creator.Contains(_search, StringComparison.CurrentCultureIgnoreCase));
+
+    /// <summary>Opens that profile's Beatmaps with only the maps not on this PC.</summary>
+    private void ShowMissing(long userId)
+    {
+        var filters = Selector.For(userId).Filters;
+        filters.Library.Clear();
+        filters.Library.Add(MapOwnership.None);
+        Nav.NavigateTo(string.Create(CultureInfo.InvariantCulture, $"beatmaps/{userId}"));
+    }
+
+    private static string CoverUrl(long setId) =>
+        string.Create(CultureInfo.InvariantCulture, $"https://assets.ppy.sh/beatmaps/{setId}/covers/list@2x.jpg");
+
+    private static string SetUrl(long setId) =>
+        string.Create(CultureInfo.InvariantCulture, $"https://osu.ppy.sh/beatmapsets/{setId}");
+
+    private void OnChanged() => _ = InvokeAsync(async () =>
+    {
+        _snapshot = null;
+        StateHasChanged();
+        await LoadAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose() => Library.Changed -= OnChanged;
+}

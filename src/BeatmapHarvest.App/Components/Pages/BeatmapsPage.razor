@@ -8,7 +8,7 @@
 @inject ProfileLibrary Profiles
 @inject SelectorState State
 @inject DownloadSession Downloads
-@inject DownloadLedger Ledger
+@inject OsuLibrary Library
 @inject SettingsStore Settings
 @inject AppPaths Paths
 @inject NavigationManager Nav
@@ -57,7 +57,7 @@ else if (_owned is null)
 else
 {
     <p class="muted">
-        @_result.Username · @_mapsets.Count beatmapsets · you already have @_ownedCount.
+        @_result.Username · @_mapsets.Count beatmapsets · @_inGameCount already in osu!, @(_ownedCount - _inGameCount) downloaded but not in osu! yet.
         @(Config.SelectionMode == SelectionMode.Filters
             ? "Everything that passes the filters is selected; click a map to add or remove it by hand."
             : "Only the maps you click are selected; the filters just narrow the list.")
@@ -155,6 +155,17 @@ else
         </div>
 
         <div class="filter-row">
+            <span class="filter-label">Library</span>
+            <div class="chips">
+                @foreach (var (state, label) in LibraryStates)
+                {
+                    <span class="chip @(Filters.Library.Contains(state) ? "on" : "")" @onclick="() => ToggleLibrary(state)">@label</span>
+                }
+            </div>
+            <small class="muted">@(Filters.Library.Count == 0 ? "any — \"Skip maps I already have\" decides" : "only these; \"Skip maps I already have\" is ignored")</small>
+        </div>
+
+        <div class="filter-row">
             <input class="input search" placeholder="Search artist, title, mapper or difficulty"
                    @bind="Filters.Search" @bind:event="oninput" @bind:after="Refresh" />
             <label class="check-field">
@@ -178,8 +189,8 @@ else
     <div class="map-list">
         <Virtualize Items="_visible" ItemSize="96" Context="m">
             @{
-                var owned = _owned.Contains(m.Id);
-                var selected = SelectionEngine.IsSelected(m, Config, owned);
+                var ownership = _owned.Of(m.Id);
+                var selected = SelectionEngine.IsSelected(m, Config, ownership);
             }
             <div class="map-row" @key="m.Id">
                 <div class="map-card @(selected ? "selected" : "")" title="Click to @(selected ? "remove from" : "add to") the selection" @onclick="() => Toggle(m)">
@@ -198,9 +209,13 @@ else
                         <div class="map-title"><b>@m.Title</b> <span class="muted">by @m.Artist</span></div>
                         <div class="map-meta">
                             <span class="tag status-@(m.Status ?? "unknown")">@Format.Status(m.Status)</span>
-                            @if (owned)
+                            @if (ownership == MapOwnership.InGame)
                             {
-                                <span class="tag have">Have it</span>
+                                <span class="tag have" title="Already in osu!">In osu!</span>
+                            }
+                            else if (ownership == MapOwnership.Downloaded)
+                            {
+                                <span class="tag downloaded-only" title="Downloaded by Beatmap Harvest, not in osu! yet">Downloaded</span>
                             }
                             <span>mapped by @m.Creator</span>
                             <span>@Format.Length(m.LengthSeconds)</span>
@@ -249,7 +264,7 @@ else
 
     @if (_details is not null)
     {
-        <MapDetailsDialog Mapset="_details" Owned="_owned.Contains(_details.Id)" OnClose="() => _details = null" />
+        <MapDetailsDialog Mapset="_details" Owned="_owned.Owns(_details.Id)" OnClose="() => _details = null" />
     }
 }
 </div>
@@ -259,12 +274,15 @@ else
     private static readonly SliderRange LengthTrack = new(0, 600);
     private static readonly string[] Sources =
         [HarvestSource.Best, HarvestSource.Firsts, HarvestSource.Pinned, HarvestSource.Recent, HarvestSource.MostPlayed];
+    private static readonly (MapOwnership State, string Label)[] LibraryStates =
+        [(MapOwnership.None, "not on this PC"), (MapOwnership.Downloaded, "downloaded, not in osu!"), (MapOwnership.InGame, "in osu!")];
     private static readonly string[] StatusOrder = ["ranked", "approved", "qualified", "loved", "pending", "wip", "graveyard"];
 
     private HarvestResult? _result;
     private IReadOnlyList<MapsetInfo> _mapsets = [];
-    private HashSet<long>? _owned;
+    private OwnershipIndex? _owned;
     private int _ownedCount;
+    private int _inGameCount;
     private Dictionary<string, int> _modeCounts = [];
     private List<string> _statuses = [];
 
@@ -296,6 +314,7 @@ else
     {
         Harvest.Changed += OnSessionChanged;
         Downloads.Changed += OnSessionChanged;
+        Library.Changed += OnLibraryChanged;
         Harvest.LoadLatest();
     }
 
@@ -330,19 +349,12 @@ else
         SyncInputs();
 
         _owned = null;
-        var settings = Settings.Load();
-        var downloads = settings.DownloadsDirectory ?? Paths.DefaultDownloadsDirectory;
-        var songs = settings.SongsDirectory ?? AppPaths.DefaultSongsDirectory;
-        try
-        {
-            _owned = await Task.Run(() => OwnedMapsets.Collect(Ledger, downloads, songs));
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            _owned = [.. Ledger.Snapshot()];
-            Show(false, $"Could not read the downloads or Songs folder ({ex.Message}). Only done.json is used to detect maps you have.");
-        }
-        _ownedCount = _mapsets.Count(m => _owned.Contains(m.Id));
+        var library = await Library.GetAsync();
+        _owned = library.Ownership;
+        if (library.Error is not null)
+            Show(false, library.Error);
+        _ownedCount = _mapsets.Count(m => _owned.Owns(m.Id));
+        _inGameCount = _mapsets.Count(m => _owned.Of(m.Id) == MapOwnership.InGame);
         Refresh();
     }
 
@@ -356,10 +368,10 @@ else
         if (Filters.OnlySelected)
             shown = shown.Where(IsSelected);
         else if (Config.SelectionMode == SelectionMode.Custom)
-            shown = shown.Where(m => SelectionEngine.Matches(m, Filters, _owned.Contains(m.Id)));
+            shown = shown.Where(m => SelectionEngine.Matches(m, Filters, _owned.Of(m.Id)));
         else if (Filters.HideUnmatched)
             // Keep maps added by hand, and matching maps removed by hand so they can be added back.
-            shown = shown.Where(m => Config.Included.Contains(m.Id) || SelectionEngine.Matches(m, Filters, _owned.Contains(m.Id)));
+            shown = shown.Where(m => Config.Included.Contains(m.Id) || SelectionEngine.Matches(m, Filters, _owned.Of(m.Id)));
         shown = shown.Where(m => SelectionEngine.MatchesSearch(m, Filters.Search));
         _visible = MapsetSort.Apply(shown, Config.Sort).ToList();
         UpdateTotals();
@@ -374,7 +386,14 @@ else
         _selectedLength = summary.TotalSongLength;
     }
 
-    private bool IsSelected(MapsetInfo m) => SelectionEngine.IsSelected(m, Config, _owned!.Contains(m.Id));
+    private bool IsSelected(MapsetInfo m) => SelectionEngine.IsSelected(m, Config, _owned!.Of(m.Id));
+
+    private void ToggleLibrary(MapOwnership state)
+    {
+        if (!Filters.Library.Remove(state))
+            Filters.Library.Add(state);
+        Refresh();
+    }
 
     private void SetHideUnmatched(bool hide)
     {
@@ -395,7 +414,7 @@ else
     // Does not re-filter the list, so a map does not vanish from under the cursor with "Show only selected".
     private void Toggle(MapsetInfo m)
     {
-        SelectionEngine.Toggle(m, Config, _owned!.Contains(m.Id));
+        SelectionEngine.Toggle(m, Config, _owned!.Of(m.Id));
         UpdateTotals();
     }
 
@@ -534,6 +553,14 @@ else
         StateHasChanged();
     });
 
+    // New downloads or moved files change what is "already on this PC".
+    private void OnLibraryChanged() => _ = InvokeAsync(async () =>
+    {
+        if (_result is not null)
+            await LoadHarvestAsync(_result);
+        StateHasChanged();
+    });
+
     private void RemoveProfile()
     {
         if (_result is null)
@@ -575,5 +602,6 @@ else
     {
         Harvest.Changed -= OnSessionChanged;
         Downloads.Changed -= OnSessionChanged;
+        Library.Changed -= OnLibraryChanged;
     }
 }

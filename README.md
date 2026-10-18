@@ -65,7 +65,7 @@ Some useful extras:
 
 - Click a cover to hear a preview of the song.
 - Click **i** on a map (or a song in **Most played** on the Harvest page) to see its details: cover, BPM, length, ranked date, global plays, and every difficulty with its stars, CS, AR, OD, HP, max combo and your plays.
-- Maps you already have are tagged **Have it** and skipped. To include them anyway, untick **Skip maps I already have**.
+- Maps already in osu! are tagged **In osu!**, and maps you downloaded but haven't added to osu! yet are tagged **Downloaded**. Both are skipped unless you untick **Skip maps I already have**. The **Library** filter shows only maps that are in osu!, only downloaded, or not on this PC.
 - Use the search box to find a song, artist, mapper or difficulty.
 - **Outside the filters: Dim / Hide** chooses whether maps and difficulties that don't match the filters are shown faded or left out of the list.
 - **Save selection…** and **Load selection…** keep your filters and choices in a file for later.
@@ -82,12 +82,19 @@ On **Downloads**, click **Move downloads…**. By default this moves the `.osz` 
 
 You can also open the downloads folder (**Open folder**) and double-click the `.osz` files, or drag them onto the osu! window.
 
+## Your osu! library
+
+**osu! library** shows the osu! (stable) installation Beatmap Harvest found, every beatmapset in it, and, for each harvested profile, how many of its maps are already in osu!, only downloaded, or missing. **Show missing** opens that profile's beatmaps with only the maps you don't have.
+
+Beatmap Harvest reads osu!'s own map list (`osu!.db`) and the Songs folder, so it also recognises maps whose folder names don't start with their id. It only reads them; osu! can stay open. osu!lazer is not supported.
+
 ## Settings
 
 Each folder can be typed, picked with **Browse…**, or set back to its default with **Default**.
 
 - **Downloads folder**: where `.osz` files are saved.
-- **osu! Songs folder**: used to find maps you already have. The default is the usual osu! install location.
+- **osu! folder**: your osu! (stable) installation. It is detected automatically; set it only if osu! is somewhere unusual.
+- **osu! Songs folder**: used to find maps you already have. By default, the Songs folder osu! itself uses.
 - **Move downloads to**: where **Move downloads…** puts the files. The default is the osu! Songs folder.
 - **Parallel downloads**: how many maps download at the same time.
 

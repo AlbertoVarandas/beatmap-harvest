@@ -44,6 +44,7 @@ public sealed class SelectorState
             Length = source.Filters.Length,
             Plays = source.Filters.Plays,
             SkipOwned = source.Filters.SkipOwned,
+            Library = [.. source.Filters.Library],
             HideUnmatched = source.Filters.HideUnmatched,
         },
     };
