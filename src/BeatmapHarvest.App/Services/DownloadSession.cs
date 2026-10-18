@@ -28,7 +28,7 @@ public sealed class DownloadItem(long setId, string artist, string title)
 /// App-wide download state, like <see cref="HarvestSession"/>: a running download survives navigation.
 /// Components subscribe to <see cref="Changed"/> and re-render.
 /// </summary>
-public sealed class DownloadSession(DownloadRunner runner, BeatmapDownloader downloader, SettingsStore settings, AppPaths paths) : IDisposable
+public sealed class DownloadSession(DownloadRunner runner, BeatmapDownloader downloader, SettingsStore settings, AppPaths paths, OsuLibrary library) : IDisposable
 {
     private readonly Lock _lock = new();
     private Dictionary<long, DownloadItem> _byId = [];
@@ -58,7 +58,7 @@ public sealed class DownloadSession(DownloadRunner runner, BeatmapDownloader dow
     }
 
     public string DownloadsDirectory => settings.Load().DownloadsDirectory ?? paths.DefaultDownloadsDirectory;
-    public string SongsDirectory => settings.Load().SongsDirectory ?? AppPaths.DefaultSongsDirectory;
+    public string SongsDirectory => library.SongsDirectory;
 
     /// <summary>Target of "Move downloads"; the Songs folder unless another one is set in Settings.</summary>
     public string MoveToDirectory => settings.Load().MoveToDirectory ?? SongsDirectory;
@@ -106,7 +106,12 @@ public sealed class DownloadSession(DownloadRunner runner, BeatmapDownloader dow
     {
         var from = DownloadsDirectory;
         var to = MoveToDirectory;
-        return Task.Run(() => SongsFolder.MoveArchives(from, to));
+        return Task.Run(() =>
+        {
+            var result = SongsFolder.MoveArchives(from, to);
+            library.Reload();
+            return result;
+        });
     }
 
     private async Task RunAsync(IReadOnlyCollection<long> ids, string destination, int maxParallel, CancellationToken cancellationToken)
@@ -130,6 +135,7 @@ public sealed class DownloadSession(DownloadRunner runner, BeatmapDownloader dow
             IsRunning = false;
             _cts?.Dispose();
             _cts = null;
+            library.Reload();
             Changed?.Invoke();
         }
     }

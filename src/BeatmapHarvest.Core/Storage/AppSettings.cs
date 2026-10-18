@@ -10,7 +10,10 @@ public sealed record AppSettings
     /// <summary>null → <see cref="AppPaths.DefaultDownloadsDirectory"/>.</summary>
     public string? DownloadsDirectory { get; init; }
 
-    /// <summary>null → <see cref="AppPaths.DefaultSongsDirectory"/>.</summary>
+    /// <summary>The osu! stable install; null → detected automatically.</summary>
+    public string? OsuDirectory { get; init; }
+
+    /// <summary>null → the Songs folder of the osu! install (from its config), or <see cref="AppPaths.DefaultSongsDirectory"/>.</summary>
     public string? SongsDirectory { get; init; }
 
     /// <summary>Where "Move downloads" puts the .osz files; null → the Songs folder.</summary>

@@ -371,6 +371,7 @@ small { font-weight: normal; }
 .tag.status-pending, .tag.status-wip { --c: var(--warn); }
 .tag.have, .tag.downloaded { --c: var(--ok); }
 .tag.skipped { --c: #66ccff; }
+.tag.downloaded-only { --c: var(--warn); }
 .tag.failed { --c: var(--error); }
 
 .page-footer {
@@ -405,6 +406,14 @@ small { font-weight: normal; }
 .info-btn:hover { color: var(--text); border-color: var(--pink); }
 .table.clickable tbody tr { cursor: pointer; }
 .table.clickable tbody tr:hover td { background: var(--panel-2); }
+
+/* osu! library */
+.local-list { max-height: 560px; overflow-y: auto; }
+.local-row { height: 58px; display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border); padding: 4px 4px; }
+.local-cover { width: 80px; height: 48px; flex-shrink: 0; border-radius: 5px; overflow: hidden; background: var(--panel-2); }
+.local-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.local-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.map-meta .dot { display: inline-block; vertical-align: middle; }
 
 /* Account and friends */
 .account-row { display: flex; align-items: center; gap: 14px; }

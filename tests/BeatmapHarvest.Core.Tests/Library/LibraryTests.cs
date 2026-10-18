@@ -72,7 +72,9 @@ public class DownloadLedgerTests
 
         var owned = OwnedMapsets.Collect(ledger, dir.File("downloads"), dir.File("Songs"));
 
-        Assert.Equal([1L, 2L, 3L], owned.Order());
+        Assert.Equal([1L, 2L], owned.Downloaded.Order());
+        Assert.Equal([3L], owned.InGame);
+        Assert.True(owned.Owns(2));
     }
 }
 

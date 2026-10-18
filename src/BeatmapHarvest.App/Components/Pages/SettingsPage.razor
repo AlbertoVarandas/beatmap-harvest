@@ -4,6 +4,7 @@
 @inject OsuApiOptions ApiOptions
 @inject SettingsStore Settings
 @inject AppPaths Paths
+@inject OsuLibrary Library
 
 <h1>Settings</h1>
 
@@ -54,10 +55,12 @@
     <h2>Folders and downloads</h2>
     <FolderField Label="Downloads folder" Hint="where .osz files are saved"
                  @bind-Value="_downloads" DefaultPath="@Paths.DefaultDownloadsDirectory" />
-    <FolderField Label="osu! Songs folder" Hint="osu! stable; used to detect maps you already have"
-                 @bind-Value="_songs" DefaultPath="@AppPaths.DefaultSongsDirectory" />
+    <FolderField Label="osu! folder" Hint="osu! stable install; detected automatically"
+                 @bind-Value="_osu" DefaultPath="@(OsuInstall.Find(null)?.Root ?? OsuInstall.DefaultRoot)" />
+    <FolderField Label="osu! Songs folder" Hint="used to detect maps you already have; by default the one osu! uses"
+                 @bind-Value="_songs" DefaultPath="@DetectedSongs" />
     <FolderField Label="Move downloads to" Hint="used by Downloads → Move; by default the osu! Songs folder"
-                 @bind-Value="_moveTo" DefaultPath="@(_songs ?? AppPaths.DefaultSongsDirectory)" />
+                 @bind-Value="_moveTo" DefaultPath="@(_songs ?? DetectedSongs)" />
     <label class="field narrow">
         <span>Parallel downloads</span>
         <input class="input" type="number" min="1" max="6" @bind="_parallel" />
@@ -84,8 +87,11 @@
     private string? _credentialMessage;
 
     private string? _downloads;
+    private string? _osu;
     private string? _songs;
     private string? _moveTo;
+
+    private string DetectedSongs => OsuInstall.Find(_osu)?.SongsDirectory ?? AppPaths.DefaultSongsDirectory;
     private int _parallel;
     private string? _foldersMessage;
 
@@ -97,6 +103,7 @@
 
         var settings = Settings.Load();
         _downloads = settings.DownloadsDirectory;
+        _osu = settings.OsuDirectory;
         _songs = settings.SongsDirectory;
         _moveTo = settings.MoveToDirectory;
         _parallel = settings.MaxParallelDownloads;
@@ -172,11 +179,13 @@
         Settings.Save(Settings.Load() with
         {
             DownloadsDirectory = _downloads,
+            OsuDirectory = _osu,
             SongsDirectory = _songs,
             MoveToDirectory = _moveTo,
             MaxParallelDownloads = Math.Clamp(_parallel, 1, 6),
         });
         _parallel = Math.Clamp(_parallel, 1, 6);
         _foldersMessage = "Saved.";
+        Library.Reload();
     }
 }

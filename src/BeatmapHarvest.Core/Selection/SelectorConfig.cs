@@ -33,6 +33,9 @@ public sealed class SelectionFilters
 
     public bool SkipOwned { get; set; } = true;
 
+    /// <summary>Only maps in these states (in osu!, downloaded, not owned). Empty = any; when set, <see cref="SkipOwned"/> is ignored.</summary>
+    public HashSet<Library.MapOwnership> Library { get; init; } = [];
+
     /// <summary>View-only.</summary>
     public bool OnlySelected { get; set; }
 
