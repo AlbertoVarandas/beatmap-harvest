@@ -9,7 +9,7 @@
     <h1>osu! library</h1>
     <button class="btn small" disabled="@(_snapshot is null)" @onclick="Library.Reload">Reload</button>
 </div>
-<p class="muted">The maps already in your osu! (stable) installation, read from <code>osu!.db</code> and the Songs folder, compared with the profiles you harvested.</p>
+<p class="muted">The maps you already have in osu!, compared with the profiles you harvested.</p>
 
 @if (_snapshot is null)
 {
@@ -37,14 +37,12 @@ else
         else
         {
             <div class="detail-grid">
-                <div class="wide"><span>osu! folder</span><b>@install.Root</b></div>
-                <div class="wide"><span>Songs folder</span><b>@_snapshot.SongsDirectory</b></div>
                 <div><span>Beatmapsets</span><b>@_sets.Count</b></div>
                 <div><span>Difficulties</span><b>@(db?.Beatmaps.Count.ToString(CultureInfo.CurrentCulture) ?? "–")</b></div>
-                <div><span>osu!.db version</span><b>@(db?.Version.ToString(CultureInfo.InvariantCulture) ?? "not read")</b></div>
                 <div><span>Player</span><b>@(string.IsNullOrEmpty(db?.PlayerName) ? "–" : db.PlayerName)</b></div>
             </div>
             <div class="actions">
+                <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(install.Root)">Open osu! folder</button>
                 <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(_snapshot.SongsDirectory)">Open Songs folder</button>
             </div>
         }
@@ -86,9 +84,11 @@ else
                 <Virtualize Items="Shown().ToList()" ItemSize="58" Context="set">
                     <div class="local-row">
                         <div class="local-cover">
-                            @if (set.SetId > 0)
+                            @* Online cover first; osu! has none for some maps (e.g. removed art), so fall back to the map's own background. *@
+                            @if (set.SetId > 0 || set.Background is not null)
                             {
-                                <img src="@CoverUrl(set.SetId)" alt="" loading="lazy" onerror="this.style.visibility='hidden'" />
+                                <img src="@(set.SetId > 0 ? CoverUrl(set.SetId) : set.Background)" data-fallback="@(set.SetId > 0 ? set.Background : null)"
+                                     alt="" loading="lazy" onerror="@ImageFallbackScript" />
                             }
                         </div>
                         <div class="local-text">
@@ -118,7 +118,12 @@ else
 }
 
 @code {
-    private sealed record LocalSet(long SetId, string Artist, string Title, string Creator, int Difficulties, IReadOnlyList<string> Modes);
+    /// <summary>Tries data-fallback once, then hides the image.</summary>
+    private const string ImageFallbackScript =
+        "if (this.dataset.fallback) { this.src = this.dataset.fallback; this.dataset.fallback = ''; } else { this.style.visibility = 'hidden'; }";
+
+    /// <param name="Background">URL of the map's own background image in the Songs folder, if it has one.</param>
+    private sealed record LocalSet(long SetId, string Artist, string Title, string Creator, int Difficulties, IReadOnlyList<string> Modes, string? Background);
     private sealed record ProfileRow(long UserId, string Username, int Total, int InGame, int Downloaded, int Missing);
 
     private LibrarySnapshot? _snapshot;
@@ -136,17 +141,18 @@ else
     {
         _snapshot = null;
         var snapshot = await Library.GetAsync();
-        _sets = (snapshot.Database?.Beatmaps ?? [])
+        _sets = await Task.Run(() => (snapshot.Database?.Beatmaps ?? [])
             .GroupBy(b => b.BeatmapsetId > 0 ? b.BeatmapsetId.ToString(CultureInfo.InvariantCulture) : "folder:" + b.FolderName, StringComparer.Ordinal)
             .Select(g =>
             {
                 var first = g.First();
                 return new LocalSet(first.BeatmapsetId, first.Artist, first.Title, first.Creator, g.Count(),
-                    g.Select(b => b.Mode).Distinct().Order(StringComparer.Ordinal).ToList());
+                    g.Select(b => b.Mode).Distinct().Order(StringComparer.Ordinal).ToList(),
+                    LocalBackground(snapshot.SongsDirectory, first));
             })
             .OrderBy(s => s.Artist, StringComparer.CurrentCultureIgnoreCase)
             .ThenBy(s => s.Title, StringComparer.CurrentCultureIgnoreCase)
-            .ToList();
+            .ToList());
 
         _profiles = Profiles.Profiles
             .Select(p => Profiles.Get(p.UserId))
@@ -176,6 +182,14 @@ else
         filters.Library.Clear();
         filters.Library.Add(MapOwnership.None);
         Nav.NavigateTo(string.Create(CultureInfo.InvariantCulture, $"beatmaps/{userId}"));
+    }
+
+    private static string? LocalBackground(string songsDirectory, LocalBeatmap map)
+    {
+        if (map.FolderName.Length == 0 || map.OsuFile.Length == 0)
+            return null;
+        var background = OsuFileReader.ReadBackground(Path.Combine(songsDirectory, map.FolderName, map.OsuFile));
+        return background is null ? null : OsuFilesHost.SongsUrl(Path.Combine(map.FolderName, background));
     }
 
     private static string CoverUrl(long setId) =>

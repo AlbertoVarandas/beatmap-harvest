@@ -8,8 +8,7 @@
     <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(Session.Destination ?? Session.DownloadsDirectory)">Open folder</button>
 </div>
 <p class="muted">
-    Fetches the selected beatmapsets from public mirrors into <code>@(Session.Destination ?? Session.DownloadsDirectory)</code>.
-    Maps already in that folder or in <code>done.json</code> are skipped, so a stopped run resumes where it left off.
+    Downloads the maps you selected. Maps you already have are skipped, and a stopped download continues where it left off.
 </p>
 
 @if (Session.Items.Length == 0)
@@ -123,8 +122,7 @@ else
 <section class="panel">
     <h2>Move downloads</h2>
     <p class="muted">
-        Moves every <code>.osz</code> from the downloads folder to <code>@Session.MoveToDirectory</code>
-        (<a href="settings">change in Settings</a>). osu! (stable) imports <code>.osz</code> files placed in its Songs folder the next time it starts.
+        Moves the downloaded maps into osu!, which adds them the next time it starts. The destination can be changed in <a href="settings">Settings</a>.
     </p>
     @if (_confirmMove)
     {

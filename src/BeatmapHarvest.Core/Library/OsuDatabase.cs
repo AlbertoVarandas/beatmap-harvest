@@ -12,7 +12,8 @@ public sealed record LocalBeatmap(
     string Mode,
     double? Stars,
     int DrainSeconds,
-    string FolderName);
+    string FolderName,
+    string OsuFile = "");
 
 public sealed record OsuDatabase(int Version, string PlayerName, IReadOnlyList<LocalBeatmap> Beatmaps)
 {
@@ -117,7 +118,7 @@ public static class OsuDatabaseReader
         var version = r.ReadOsuString();
         r.ReadOsuString(); // audio file
         var md5 = r.ReadOsuString();
-        r.ReadOsuString(); // .osu file name
+        var osuFile = r.ReadOsuString();
         r.ReadByte(); // ranked status
         r.Skip(2 + 2 + 2 + 8); // circles, sliders, spinners, last modified
         r.Skip(layout.FloatAttributes ? 4 * 4 : 4); // AR, CS, HP, OD
@@ -162,7 +163,7 @@ public static class OsuDatabaseReader
         r.ReadByte(); // mania scroll speed
 
         return new LocalBeatmap(md5, beatmapId, beatmapsetId, artist, title, creator, version, Modes[mode],
-            stars[mode], drain, folder);
+            stars[mode], drain, folder, osuFile);
     }
 
     /// <summary>Star ratings per mod combination; returns the no-mod one.</summary>
