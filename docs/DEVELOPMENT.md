@@ -43,16 +43,20 @@ The exe is not code-signed yet, so Windows SmartScreen warns on first run. The r
 ```
 BeatmapHarvest.slnx
 ├─ src/BeatmapHarvest.Core          net10.0 class library: all logic, no UI, no Windows APIs
-│  ├─ Osu/          API v2 models, OAuth token provider, rate-limited client (IOsuDataSource), profile input parser
-│  ├─ Harvesting/   ProfileHarvester (pagination), MapsetAggregator (merge), HarvestSummary
-│  ├─ Library/      OwnedMapsetScanner, DownloadLedger (done.json): what is already on disk
+│  ├─ Osu/          API v2 models, app token (client credentials), rate-limited client (IOsuDataSource),
+│  │                user sign-in (OsuUserAuth, LoopbackCallbackListener), profile input parser
+│  ├─ Harvesting/   ProfileHarvester (pagination, progress estimate), MapsetAggregator (merge), HarvestSummary
+│  ├─ Library/      osu! stable files: OsuInstall (+ cfg), OsuDatabaseReader (osu!.db), CollectionDatabase,
+│  │                SkinCatalog; OwnershipIndex (in osu! / downloaded / none), DownloadLedger (done.json)
 │  ├─ Downloads/    BeatmapDownloader (mirrors, ZIP check, .part), DownloadRunner (parallel queue), SongsFolder
-│  ├─ Selection/    SelectorConfig, SelectionEngine (filters / custom modes), MapsetSort, SliderRange
+│  ├─ Selection/    SelectorConfig, SelectionEngine (filters / custom modes / library), MapsetSort, SliderRange
 │  ├─ Display/      StarColor (osu!'s difficulty colour gradient)
 │  └─ Storage/      AppPaths, AtomicFile, settings and harvest stores
 ├─ src/BeatmapHarvest.App           WPF window hosting a BlazorWebView (WebView2)
-│  ├─ Components/   Razor UI (layout, pages)
-│  ├─ Services/     DI setup, DPAPI credential store, HarvestSession / DownloadSession / SelectorState (state shared by pages), file dialogs
+│  ├─ Components/   Razor UI: layout (sidebar with profiles), pages, dialogs (map details, add to collection)
+│  ├─ Services/     DI setup; app-wide state shared by pages (HarvestSession, ProfileLibrary, SelectorState,
+│  │                DownloadSession, OsuLibrary, CollectionsService, OsuAccount); DPAPI files; OsuFilesHost
+│  │                (https://osu.local/ → osu! folder, for skin images); file/folder dialogs
 │  └─ wwwroot/      HTML host page and CSS, embedded in the assembly
 └─ tests/BeatmapHarvest.Core.Tests  xUnit tests for the Core
 ```
@@ -64,6 +68,8 @@ Design rules:
 - **Everything written to disk is atomic** (`.tmp` + flush + rename). Unreadable JSON is moved to `.corrupt` rather than lost.
 - **Respect the API:** one request per second, the same request is retried on HTTP 429 (honouring `Retry-After`), and the token is refreshed once on 401.
 - **Package versions are central** in `Directory.Packages.props`. Shared build settings live in `Directory.Build.props`, and warnings are treated as errors.
+- **osu!'s files are read from copies and written only on request.** `osu!.db` is read into memory, so osu! can stay open. `collection.db` is written only by "Save to osu!", which refuses while osu! runs and keeps a timestamped backup.
+- **Large lists are virtualized.** The Beatmaps list (`<Virtualize>`) keeps about 16 cards in the DOM. Measured with a synthetic profile of 8000 beatmapsets / 24000 difficulties: the page opens in ~0.1 s, filters and search apply in 20–35 ms, and scrolling stays smooth.
 - **The UI is embedded.** `wwwroot` and Blazor's `blazor.webview.js` are embedded resources served by `EmbeddedBlazorWebView`, so the single-file `.exe` works on its own. New static files must go under `wwwroot`.
 
 ### Data flow
@@ -80,6 +86,8 @@ Under `%LOCALAPPDATA%\BeatmapHarvest`:
 | Path | Contents |
 |---|---|
 | `credentials.bin` | OAuth client id/secret, DPAPI-encrypted |
+| `account.bin` | signed-in user's tokens (optional), DPAPI-encrypted |
+| `WebView2/` | WebView2 cache |
 | `settings.json` | folders, parallel downloads, mirrors |
 | `profiles/<user id>/beatmap_info.json` | last harvest of each profile |
 | `done.json` | ids of beatmapsets whose download finished |
