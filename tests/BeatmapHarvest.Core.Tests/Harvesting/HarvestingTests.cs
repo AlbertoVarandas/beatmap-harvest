@@ -109,6 +109,37 @@ public class ProfileHarvesterTests
         Assert.Equal(4, result.Mapsets.Count);
         Assert.Contains(result.Mapsets, m => m.Id == 500 && m.Sources.Contains(HarvestSource.Best));
     }
+
+    private sealed class Collect : IProgress<HarvestProgress>
+    {
+        public List<HarvestProgress> Reports { get; } = [];
+        public void Report(HarvestProgress value) => Reports.Add(value);
+    }
+
+    [Fact]
+    public async Task Progress_never_goes_backwards_and_ends_at_one()
+    {
+        var progress = new Collect();
+
+        await new ProfileHarvester(new FakeSource()).HarvestAsync(
+            new UserReference("1", null), new HarvestOptions { PageSize = 3 }, progress, CancellationToken.None);
+
+        var fractions = progress.Reports.Select(r => r.Fraction).ToList();
+        Assert.Equal(fractions.Order(), fractions);
+        Assert.All(fractions[..^1], f => Assert.InRange(f, 0, 0.99));
+        Assert.Equal(1, fractions[^1]);
+        Assert.Contains(fractions, f => f is > 0.2 and < 0.99);
+    }
+
+    [Theory]
+    [InlineData(null, 100, 1)]
+    [InlineData(0, 100, 1)]
+    [InlineData(100, 100, 2)]
+    [InlineData(101, 100, 3)]
+    public void Expected_requests_include_the_final_empty_page(int? count, int pageSize, int expected)
+    {
+        Assert.Equal(expected, ProfileHarvester.ExpectedRequests(count, pageSize));
+    }
 }
 
 public class HarvestSummaryTests

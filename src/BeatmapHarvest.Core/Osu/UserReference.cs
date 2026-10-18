@@ -30,13 +30,17 @@ public sealed partial record UserReference(string ApiKey, string? Mode)
         if (text.Contains("://", StringComparison.Ordinal) || text.Contains('/', StringComparison.Ordinal))
             return false;
 
-        return TryFromIdOrName(text.TrimStart('@'), null, out reference);
+        // A leading '@' always means a username, so all-digit usernames can be looked up too.
+        if (text.StartsWith('@'))
+            return TryFromIdOrName(text[1..], null, out reference, forceUsername: true);
+
+        return TryFromIdOrName(text, null, out reference);
     }
 
-    private static bool TryFromIdOrName(string value, string? mode, [NotNullWhen(true)] out UserReference? reference)
+    private static bool TryFromIdOrName(string value, string? mode, [NotNullWhen(true)] out UserReference? reference, bool forceUsername = false)
     {
         reference = null;
-        if (long.TryParse(value, out var id) && id > 0)
+        if (!forceUsername && long.TryParse(value, out var id) && id > 0)
         {
             reference = new UserReference(id.ToString(System.Globalization.CultureInfo.InvariantCulture), mode);
             return true;

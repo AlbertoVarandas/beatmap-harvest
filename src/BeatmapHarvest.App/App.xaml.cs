@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using BeatmapHarvest.App.Services;
+using BeatmapHarvest.Core.Storage;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BeatmapHarvest.App;
@@ -11,6 +12,11 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Keep WebView2's cache with the rest of the app data instead of a separate %LOCALAPPDATA%\BeatmapHarvest.WebView2.
+        // An explicit WEBVIEW2_USER_DATA_FOLDER (e.g. for testing) still wins.
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER")))
+            Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", Path.Combine(AppPaths.Default.Root, "WebView2"));
 
         _services = new ServiceCollection().AddBeatmapHarvest().BuildServiceProvider();
         // MainWindow's BlazorWebView binds to this resource.

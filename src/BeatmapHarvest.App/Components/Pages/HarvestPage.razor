@@ -62,6 +62,14 @@
 {
     <section class="panel">
         <h2>Progress</h2>
+        @if (Session.IsRunning)
+        {
+            <div class="progress-row">
+                <div class="progress"><div style="width:@Format.Percent(Session.Fraction)"></div></div>
+                <b>@Format.Percent(Session.Fraction, decimals: 0)</b>
+            </div>
+            <p class="muted progress-status">@Session.Status</p>
+        }
         @* Newest first: .log reverses the column, so it stays pinned to the newest line without JS. *@
         <div class="log">
             @foreach (var line in Session.Log.Reverse())
