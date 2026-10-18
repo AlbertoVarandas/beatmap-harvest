@@ -13,6 +13,8 @@ public class UserReferenceTests
     [InlineData("  456  ", "456", null)]
     [InlineData("Some_Player", "@Some_Player", null)]
     [InlineData("@[Name]", "@[Name]", null)]
+    [InlineData("@12345", "@12345", null)]
+    [InlineData("12345", "12345", null)]
     public void Parses_profile_inputs(string input, string apiKey, string? mode)
     {
         Assert.True(UserReference.TryParse(input, out var reference));

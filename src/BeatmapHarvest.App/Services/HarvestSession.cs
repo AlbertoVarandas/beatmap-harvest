@@ -24,6 +24,12 @@ public sealed class HarvestSession(ProfileHarvester harvester, HarvestStore stor
     public bool IsRunning { get; private set; }
     public string? Error { get; private set; }
 
+    /// <summary>Estimated progress of the running harvest, 0 to 1.</summary>
+    public double Fraction { get; private set; }
+
+    /// <summary>The latest progress message.</summary>
+    public string? Status { get; private set; }
+
     public IReadOnlyList<string> Log
     {
         get
@@ -52,6 +58,8 @@ public sealed class HarvestSession(ProfileHarvester harvester, HarvestStore stor
         _cts = new CancellationTokenSource();
         IsRunning = true;
         Error = null;
+        Fraction = 0;
+        Status = null;
         lock (_lock)
             _log.Clear();
         Changed?.Invoke();
@@ -107,6 +115,11 @@ public sealed class HarvestSession(ProfileHarvester harvester, HarvestStore stor
 
     private sealed class Progress(HarvestSession session) : IProgress<HarvestProgress>
     {
-        public void Report(HarvestProgress value) => session.Append(value.Message);
+        public void Report(HarvestProgress value)
+        {
+            session.Fraction = value.Fraction;
+            session.Status = value.Message;
+            session.Append(value.Message);
+        }
     }
 }

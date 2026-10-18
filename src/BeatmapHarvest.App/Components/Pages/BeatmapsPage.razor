@@ -1,3 +1,4 @@
+@page "/beatmaps"
 @page "/select"
 @using System.Text.Json
 @using BeatmapHarvest.Core.Json
@@ -10,9 +11,9 @@
 @inject AppPaths Paths
 @inject NavigationManager Nav
 
-<div class="select-page">
+<div class="beatmaps-page">
 <div class="panel-head">
-    <h1>Select maps</h1>
+    <h1>Beatmaps</h1>
     @if (_result is not null)
     {
         <div class="actions">
@@ -141,6 +142,13 @@ else
             <label class="check-field">
                 <input type="checkbox" @bind="Filters.OnlySelected" @bind:after="Refresh" /> Show only selected
             </label>
+            <span class="inline-field" title="Maps and difficulties that don't pass the filters">
+                Outside the filters
+                <span class="segmented small">
+                    <button class="@(Filters.HideUnmatched ? "" : "on")" @onclick="() => SetHideUnmatched(false)">Dim</button>
+                    <button class="@(Filters.HideUnmatched ? "on" : "")" @onclick="() => SetHideUnmatched(true)">Hide</button>
+                </span>
+            </span>
         </div>
     </section>
 
@@ -180,7 +188,7 @@ else
                             }
                         </div>
                         <div class="diffs">
-                            @foreach (var d in m.Difficulties.OrderBy(d => d.Mode, StringComparer.Ordinal).ThenBy(d => d.Stars))
+                            @foreach (var d in ShownDifficulties(m))
                             {
                                 <span class="diff @(SelectionEngine.MatchesDifficulty(d, Filters) ? "" : "dim")"
                                       style="background:@StarColor.For(d.Stars);color:@StarColor.TextFor(d.Stars)"
@@ -297,6 +305,9 @@ else
             shown = shown.Where(IsSelected);
         else if (Config.SelectionMode == SelectionMode.Custom)
             shown = shown.Where(m => SelectionEngine.Matches(m, Filters, _owned.Contains(m.Id)));
+        else if (Filters.HideUnmatched)
+            // Keep maps added by hand, and matching maps removed by hand so they can be added back.
+            shown = shown.Where(m => Config.Included.Contains(m.Id) || SelectionEngine.Matches(m, Filters, _owned.Contains(m.Id)));
         shown = shown.Where(m => SelectionEngine.MatchesSearch(m, Filters.Search));
         _visible = MapsetSort.Apply(shown, Config.Sort).ToList();
         UpdateTotals();
@@ -312,6 +323,22 @@ else
     }
 
     private bool IsSelected(MapsetInfo m) => SelectionEngine.IsSelected(m, Config, _owned!.Contains(m.Id));
+
+    private void SetHideUnmatched(bool hide)
+    {
+        Filters.HideUnmatched = hide;
+        Refresh();
+    }
+
+    /// <summary>All difficulties, or only the matching ones in "Hide" mode (all of them if none match, e.g. a map added by hand).</summary>
+    private IEnumerable<DifficultyInfo> ShownDifficulties(MapsetInfo m)
+    {
+        var ordered = m.Difficulties.OrderBy(d => d.Mode, StringComparer.Ordinal).ThenBy(d => d.Stars);
+        if (!Filters.HideUnmatched)
+            return ordered;
+        var matching = ordered.Where(d => SelectionEngine.MatchesDifficulty(d, Filters)).ToList();
+        return matching.Count > 0 ? matching : ordered;
+    }
 
     // Does not re-filter the list, so a map does not vanish from under the cursor with "Show only selected".
     private void Toggle(MapsetInfo m)

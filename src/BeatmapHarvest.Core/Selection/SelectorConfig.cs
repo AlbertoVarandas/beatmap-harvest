@@ -35,6 +35,9 @@ public sealed class SelectionFilters
 
     /// <summary>View-only.</summary>
     public bool OnlySelected { get; set; }
+
+    /// <summary>View-only: hide maps and difficulties outside the filters instead of dimming them.</summary>
+    public bool HideUnmatched { get; set; }
 }
 
 /// <summary>The selector's state; can be saved to and loaded from a JSON file.</summary>

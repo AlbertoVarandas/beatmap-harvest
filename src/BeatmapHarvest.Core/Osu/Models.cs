@@ -15,6 +15,12 @@ public sealed record OsuUser
 
     public OsuUserStatistics? Statistics { get; init; }
     public int? BeatmapPlaycountsCount { get; init; }
+
+    // Sizes of the score lists in the requested (or default) ruleset; used to estimate progress.
+    public int? ScoresBestCount { get; init; }
+    public int? ScoresFirstCount { get; init; }
+    public int? ScoresPinnedCount { get; init; }
+    public int? ScoresRecentCount { get; init; }
 }
 
 public sealed record OsuUserStatistics

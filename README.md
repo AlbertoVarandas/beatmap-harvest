@@ -39,11 +39,13 @@ Your client secret works like a password: don't share it. Beatmap Harvest stores
 
 On **Harvest**, enter a profile link (`https://osu.ppy.sh/users/123`), a user id or a username, then click **Start harvest**.
 
-You will see a summary: how many maps were found, your plays, game modes, star range and your most played maps. A large profile takes a minute or two, because osu! limits how fast the app can ask for data.
+A progress bar shows how far along it is. A large profile takes a minute or two, because osu! limits how fast the app can ask for data. At the end you see a summary: how many maps were found, your plays, game modes, star range and your most played maps.
+
+To look up a username made only of digits, put `@` in front of it (`@12345`); otherwise it is read as a user id.
 
 ### 2. Choose what to download
 
-**Select** shows every map that was found. There are two ways to choose:
+**Beatmaps** shows every map that was found. There are two ways to choose:
 
 - **By filters**: everything that matches the filters is selected. You can filter by game mode, stars, length, how many times you played a difficulty, map status and where the map was found (best scores, first places, most played…). Click a map to add or remove it on top of the filters.
 - **Hand-picked**: only the maps you click are selected.
@@ -53,6 +55,7 @@ Some useful extras:
 - Click a cover to hear a preview of the song.
 - Maps you already have are tagged **Have it** and skipped. To include them anyway, untick **Skip maps I already have**.
 - Use the search box to find a song, artist, mapper or difficulty.
+- **Outside the filters: Dim / Hide** chooses whether maps and difficulties that don't match the filters are shown faded or left out of the list.
 - **Save selection…** and **Load selection…** keep your filters and choices in a file for later.
 
 ### 3. Download

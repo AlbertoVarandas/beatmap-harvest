@@ -28,6 +28,10 @@ internal static class Format
 
     public static string Stars(double stars) => stars.ToString("0.00", CultureInfo.CurrentCulture);
 
+    /// <summary>A 0–1 fraction as a CSS-safe percentage, e.g. <c>42.5%</c>.</summary>
+    public static string Percent(double fraction, int decimals = 1) =>
+        (Math.Clamp(fraction, 0, 1) * 100).ToString(decimals == 0 ? "0" : "0.#", CultureInfo.InvariantCulture) + "%";
+
     public static string Status(string? status) => status switch
     {
         null or "" => "unknown",

@@ -199,7 +199,7 @@ small { font-weight: normal; }
 #blazor-error-ui .dismiss { cursor: pointer; float: right; }
 
 /* Selector */
-.select-page, .downloads-page { padding-bottom: 76px; }
+.beatmaps-page, .downloads-page { padding-bottom: 76px; }
 .filters .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
 .filters .filter-row:last-child { margin-bottom: 0; }
 .filter-label { font-weight: 700; min-width: 70px; }
@@ -227,6 +227,7 @@ small { font-weight: normal; }
 }
 .segmented button + button { border-left: 1px solid var(--border); }
 .segmented button.on { background: var(--pink); color: #fff; }
+.segmented.small button { padding: 3px 10px; font-size: 13px; }
 
 /* Two range inputs stacked into one track; only the thumbs take the pointer. */
 .dual-range { position: relative; height: 22px; }
@@ -365,6 +366,10 @@ small { font-weight: normal; }
 /* Downloads */
 .progress { height: 8px; border-radius: 4px; background: var(--panel-2); overflow: hidden; margin-bottom: 14px; }
 .progress > div { height: 100%; background: var(--pink); transition: width .2s; }
+.progress-row { display: flex; align-items: center; gap: 12px; }
+.progress-row .progress { flex: 1; height: 10px; margin: 0; }
+.progress-row b { min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; }
+.progress-status { margin: 8px 0 12px; font-size: 13px; }
 .table th { text-align: left; color: var(--muted); font-weight: 700; padding: 6px 8px; }
 .table th.num { text-align: right; }
 .table .errors { color: var(--muted); font-size: 12.5px; }
