@@ -14,10 +14,10 @@ You give it a profile. It reads that profile's score lists and every map it has 
 | Harvest: best / firsts / pinned / recent scores + most played, merged per beatmapset | ✅ done |
 | Summary (modes, stars, total length, most played) | ✅ done |
 | Settings: credentials (encrypted), folders, parallel downloads | ✅ done |
-| Detection of maps already owned (`done.json`, downloads folder, osu! stable `Songs`) | ✅ core done, UI pending |
-| Selection model (filters per difficulty, include/exclude, saved configs) | ✅ core done, UI pending |
-| Mirror downloads (`.part` → ZIP check → rename, mirror fallback, resume) | ✅ core done, UI pending |
-| Selector and downloads screens | 🚧 next |
+| Detection of maps already owned (`done.json`, downloads folder, osu! stable `Songs`) | ✅ done |
+| Selector: filters per difficulty, hand-picked mode, sort, search, audio previews, save/load selection | ✅ done |
+| Mirror downloads (`.part` → ZIP check → rename, mirror fallback, resume), progress and mirror stats | ✅ done |
+| Move downloads into osu! stable's `Songs` folder | ✅ done |
 
 ## Using it
 
@@ -35,6 +35,19 @@ The credentials are stored encrypted with Windows DPAPI. Only your Windows accou
 ### 2. Harvest a profile
 
 On **Harvest**, enter a profile URL (`https://osu.ppy.sh/users/123`), a numeric id or a username, then click **Start harvest**. The API allows about one request per second, so a large profile takes a minute or two.
+
+### 3. Choose what to download
+
+**Select** lists every beatmapset of the last harvest. There are two ways to select:
+
+- **By filters** (default): everything that passes the filters is selected. Mode, stars, length and your play count are checked per difficulty, so "mania, 4★+" only matches sets with a mania difficulty of at least 4★. Click a map to add or remove it by hand on top of the filters.
+- **Hand-picked**: only the maps you click are selected; the filters just narrow the list.
+
+Maps you already have (in `done.json`, the downloads folder or osu!'s `Songs` folder) are tagged *Have it* and skipped unless you untick **Skip maps I already have**. Difficulties that fail the filters are dimmed, and clicking a cover plays the song preview. **Save selection…** writes the filters and hand-picked maps to a JSON file you can load again later.
+
+### 4. Download
+
+**Download N maps** starts the download and opens **Downloads**, which shows each map's state, the errors of the mirrors for maps that failed, and how each mirror is doing. The download keeps running if you switch pages. A cancelled or interrupted run resumes where it stopped. **Move to osu! Songs…** moves the downloaded `.osz` files into osu! stable's `Songs` folder (after asking), where osu! imports them on its next start.
 
 ## Building
 
@@ -63,11 +76,12 @@ BeatmapHarvest.slnx
 │  ├─ Harvesting/   ProfileHarvester (pagination), MapsetAggregator (merge), HarvestSummary
 │  ├─ Library/      OwnedMapsetScanner, DownloadLedger (done.json): what is already on disk
 │  ├─ Downloads/    BeatmapDownloader (mirrors, ZIP check, .part), DownloadRunner (parallel queue), SongsFolder
-│  ├─ Selection/    SelectorConfig, SelectionEngine (filters / custom modes)
+│  ├─ Selection/    SelectorConfig, SelectionEngine (filters / custom modes), MapsetSort, SliderRange
+│  ├─ Display/      StarColor (osu!'s difficulty colour gradient)
 │  └─ Storage/      AppPaths, AtomicFile, settings and harvest stores
 ├─ src/BeatmapHarvest.App           WPF window hosting a BlazorWebView (WebView2)
 │  ├─ Components/   Razor UI (layout, pages)
-│  ├─ Services/     DI setup, DPAPI credential store, HarvestSession (state shared by pages)
+│  ├─ Services/     DI setup, DPAPI credential store, HarvestSession / DownloadSession / SelectorState (state shared by pages), file dialogs
 │  └─ wwwroot/      HTML host page and CSS, embedded in the assembly
 └─ tests/BeatmapHarvest.Core.Tests  xUnit tests for the Core
 ```

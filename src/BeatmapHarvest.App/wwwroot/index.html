@@ -15,5 +15,9 @@
         <a class="dismiss">✕</a>
     </div>
     <script src="_framework/blazor.webview.js"></script>
+    <script>
+        // Beatmap previews are mastered loud; play them at a comfortable volume.
+        document.addEventListener("play", e => { if (e.target instanceof HTMLMediaElement) e.target.volume = 0.4; }, true);
+    </script>
 </body>
 </html>
