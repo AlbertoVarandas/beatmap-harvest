@@ -22,19 +22,10 @@
     else
     {
         <p class="muted">
-            Sign in to harvest your own profile with one click and pick friends from your friend list.
-            You approve Beatmap Harvest on osu.ppy.sh; the app never sees your password.
-            Downloads still come from mirrors, because osu! does not let other apps download beatmaps.
+            Sign in to get your own profile and your friends. You approve the app on the osu! website; it never sees your password.
+            If your OAuth application has no callback URL yet, add <code>@OsuAccount.RedirectUri</code>
+            <button class="btn small" @onclick="CopyRedirect">@(_copied ? "Copied" : "Copy")</button>
         </p>
-        <ol class="steps">
-            <li>
-                In your <a href="" @onclick="OpenOAuthPage" @onclick:preventDefault>OAuth application</a>, click <b>Edit</b>
-                and add this to <b>Application Callback URLs</b>:
-                <code>@OsuAccount.RedirectUri</code>
-                <button class="btn small" @onclick="CopyRedirect">@(_copied ? "Copied" : "Copy")</button>
-            </li>
-            <li>Click <b>Sign in with osu!</b> and approve the app in the browser window that opens.</li>
-        </ol>
         <div class="actions">
             @if (Account.IsSigningIn)
             {
@@ -111,7 +102,6 @@
         _copied = true;
     }
 
-    private static void OpenOAuthPage() => ShellLauncher.Open("https://osu.ppy.sh/home/account/edit#oauth");
 
     private void OnChanged() => _ = InvokeAsync(StateHasChanged);
 

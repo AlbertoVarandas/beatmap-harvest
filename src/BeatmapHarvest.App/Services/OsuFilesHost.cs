@@ -13,6 +13,9 @@ public sealed class OsuFilesHost(SettingsStore settings)
 {
     public const string HostName = "osu.local";
 
+    /// <summary>The Songs folder, which may live outside the osu! folder (BeatmapDirectory in osu!'s config).</summary>
+    public const string SongsHostName = "songs.local";
+
     private CoreWebView2? _webView;
 
     /// <summary>Called once the WebView exists.</summary>
@@ -25,18 +28,31 @@ public sealed class OsuFilesHost(SettingsStore settings)
     /// <summary>Points the mapping at the current osu! folder (after it changes in Settings).</summary>
     public void Refresh()
     {
-        var root = OsuInstall.Find(settings.Load().OsuDirectory)?.Root;
+        var current = settings.Load();
+        var install = OsuInstall.Find(current.OsuDirectory);
+        var songs = current.SongsDirectory ?? install?.SongsDirectory;
         Application.Current.Dispatcher.Invoke(() =>
         {
             if (_webView is null)
                 return;
-            _webView.ClearVirtualHostNameToFolderMapping(HostName);
-            if (root is not null)
-                _webView.SetVirtualHostNameToFolderMapping(HostName, root, CoreWebView2HostResourceAccessKind.Allow);
+            Map(_webView, HostName, install?.Root);
+            Map(_webView, SongsHostName, songs);
         });
     }
 
+    private static void Map(CoreWebView2 webView, string host, string? folder)
+    {
+        webView.ClearVirtualHostNameToFolderMapping(host);
+        if (folder is not null && Directory.Exists(folder))
+            webView.SetVirtualHostNameToFolderMapping(host, folder, CoreWebView2HostResourceAccessKind.Allow);
+    }
+
     /// <summary>URL of a file given relative to the osu! folder, e.g. <c>Skins/My Skin/cursor.png</c>.</summary>
-    public static string Url(string relativePath) =>
-        $"https://{HostName}/" + string.Join('/', relativePath.Split('\\', '/').Select(Uri.EscapeDataString));
+    public static string Url(string relativePath) => BuildUrl(HostName, relativePath);
+
+    /// <summary>URL of a file given relative to the Songs folder, e.g. <c>123 Artist - Title/bg.jpg</c>.</summary>
+    public static string SongsUrl(string relativePath) => BuildUrl(SongsHostName, relativePath);
+
+    private static string BuildUrl(string host, string relativePath) =>
+        $"https://{host}/" + string.Join('/', relativePath.Split('\\', '/').Select(Uri.EscapeDataString));
 }

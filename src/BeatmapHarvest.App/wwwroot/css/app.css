@@ -23,6 +23,11 @@
 
 * { box-sizing: border-box; }
 
+/* A desktop app, not a document: the interface is not text to select. Inputs, code and the log stay selectable. */
+body { user-select: none; -webkit-user-select: none; cursor: default; }
+input, textarea, select, code, .log, .selectable { user-select: text; -webkit-user-select: text; }
+img { -webkit-user-drag: none; }
+
 html, body {
     margin: 0;
     height: 100%;

@@ -57,10 +57,8 @@ else if (_owned is null)
 else
 {
     <p class="muted">
-        @_result.Username · @_mapsets.Count beatmapsets · @_inGameCount already in osu!, @(_ownedCount - _inGameCount) downloaded but not in osu! yet.
-        @(Config.SelectionMode == SelectionMode.Filters
-            ? "Everything that passes the filters is selected; click a map to add or remove it by hand."
-            : "Only the maps you click are selected; the filters just narrow the list.")
+        @_mapsets.Count beatmapsets · @_inGameCount in osu! · @(_ownedCount - _inGameCount) downloaded.
+        @(Config.SelectionMode == SelectionMode.Filters ? "Click a map to add or remove it." : "Click the maps you want.")
     </p>
 
     @if (_message is not null)

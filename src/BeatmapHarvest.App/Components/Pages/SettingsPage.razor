@@ -11,14 +11,14 @@
 
 <section class="panel">
     <h2>osu! API credentials</h2>
-    <p class="muted">
-        Each user uses their own OAuth application. It is free and takes a minute. The secret is stored
-        encrypted for your Windows account and is only ever sent to osu.ppy.sh.
-    </p>
+    <p class="muted">A free key from your osu! account, needed to read profiles. The secret is stored encrypted.</p>
     <ol class="steps">
         <li>Open your <a href="" @onclick="OpenOAuthPage" @onclick:preventDefault>osu! account settings</a> → <b>OAuth</b> → <b>New OAuth Application</b>.</li>
-        <li>Give it any name (e.g. <code>beatmap-harvest</code>). For the callback URL, put <code>@OsuAccount.RedirectUri</code> if you want to sign in with your osu! account below; otherwise leave it empty.</li>
-        <li>Click <b>Edit</b> on the new application, then copy the <b>Client ID</b> and, after <b>Show client secret</b>, the <b>Client Secret</b>.</li>
+        <li>
+            Give it any name and paste this as the callback URL: <code>@OsuAccount.RedirectUri</code>
+            <button class="btn small" @onclick="CopyCallback">@(_copied ? "Copied" : "Copy")</button>
+        </li>
+        <li>Click <b>Edit</b> on it and copy the <b>Client ID</b> and the <b>Client Secret</b> here.</li>
     </ol>
 
     <div class="grid-2">
@@ -56,11 +56,11 @@
     <h2>Folders and downloads</h2>
     <FolderField Label="Downloads folder" Hint="where .osz files are saved"
                  @bind-Value="_downloads" DefaultPath="@Paths.DefaultDownloadsDirectory" />
-    <FolderField Label="osu! folder" Hint="osu! stable install; detected automatically"
+    <FolderField Label="osu! folder" Hint="detected automatically"
                  @bind-Value="_osu" DefaultPath="@(OsuInstall.Find(null)?.Root ?? OsuInstall.DefaultRoot)" />
-    <FolderField Label="osu! Songs folder" Hint="used to detect maps you already have; by default the one osu! uses"
+    <FolderField Label="osu! Songs folder"
                  @bind-Value="_songs" DefaultPath="@DetectedSongs" />
-    <FolderField Label="Move downloads to" Hint="used by Downloads → Move; by default the osu! Songs folder"
+    <FolderField Label="Move downloads to" Hint="default: the Songs folder"
                  @bind-Value="_moveTo" DefaultPath="@(_songs ?? DetectedSongs)" />
     <label class="field narrow">
         <span>Parallel downloads</span>
@@ -108,6 +108,14 @@
         _songs = settings.SongsDirectory;
         _moveTo = settings.MoveToDirectory;
         _parallel = settings.MaxParallelDownloads;
+    }
+
+    private bool _copied;
+
+    private void CopyCallback()
+    {
+        ClipboardHelper.Copy(OsuAccount.RedirectUri.ToString());
+        _copied = true;
     }
 
     private void OpenOAuthPage() => ShellLauncher.Open("https://osu.ppy.sh/home/account/edit#oauth");

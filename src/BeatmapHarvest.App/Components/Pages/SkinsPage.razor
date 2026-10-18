@@ -2,7 +2,7 @@
 @inject OsuLibrary Library
 
 <h1>Skins</h1>
-<p class="muted">The skins installed in osu! (stable), with a preview of their main elements. To change skin, use osu!'s options.</p>
+<p class="muted">The skins installed in osu!.</p>
 
 @if (_install is null)
 {
@@ -10,7 +10,7 @@
 }
 else if (_skins.Count == 0)
 {
-    <p class="muted">No skins in <code>@_install.SkinsDirectory</code>.</p>
+    <p class="muted">No skins installed.</p>
 }
 else
 {
