@@ -16,6 +16,7 @@ public sealed class AppPaths(string root)
 
     public string SettingsFile => Path.Combine(Root, "settings.json");
     public string CredentialsFile => Path.Combine(Root, "credentials.bin");
+    public string AccountFile => Path.Combine(Root, "account.bin");
     public string LedgerFile => Path.Combine(Root, "done.json");
     public string DefaultDownloadsDirectory => Path.Combine(Root, "downloads");
     public string ProfilesDirectory => Path.Combine(Root, "profiles");

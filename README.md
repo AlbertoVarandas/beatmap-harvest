@@ -31,6 +31,15 @@ Beatmap Harvest reads profiles through the official osu! API. To use the API, yo
 
 Use the **OAuth** section, not *Legacy API*.
 
+### Optional: sign in with your osu! account
+
+Signing in adds a **My profile** button and your **friend list** (with one-click harvest) to the Harvest page. You approve Beatmap Harvest on the osu! website; the app never sees your password.
+
+1. On the osu! website, click **Edit** on your OAuth application and add `http://localhost:7270/callback` to **Application Callback URLs** (Settings has a **Copy** button for it).
+2. In **Settings → osu! account**, click **Sign in with osu!** and approve the app in the browser.
+
+**Sign out** removes the sign-in from the app and cancels it on osu!. Downloads work the same either way: osu! does not let other apps download beatmaps, so they always come from mirrors.
+
 Your client secret works like a password: don't share it. Beatmap Harvest stores it encrypted, readable only by your Windows account, and only ever sends it to osu.ppy.sh. It never asks for your osu! password.
 
 ## How to use

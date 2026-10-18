@@ -15,7 +15,7 @@
     </p>
     <ol class="steps">
         <li>Open your <a href="" @onclick="OpenOAuthPage" @onclick:preventDefault>osu! account settings</a> → <b>OAuth</b> → <b>New OAuth Application</b>.</li>
-        <li>Give it any name (e.g. <code>beatmap-harvest</code>) and leave the callback URL empty.</li>
+        <li>Give it any name (e.g. <code>beatmap-harvest</code>). For the callback URL, put <code>@OsuAccount.RedirectUri</code> if you want to sign in with your osu! account below; otherwise leave it empty.</li>
         <li>Click <b>Edit</b> on the new application, then copy the <b>Client ID</b> and, after <b>Show client secret</b>, the <b>Client Secret</b>.</li>
     </ol>
 
@@ -47,6 +47,8 @@
         <div class="callout @(_credentialOk ? "ok" : "error")">@_credentialMessage</div>
     }
 </section>
+
+<AccountPanel HasCredentials="_hasSaved" />
 
 <section class="panel">
     <h2>Folders and downloads</h2>

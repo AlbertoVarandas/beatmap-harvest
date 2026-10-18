@@ -9,6 +9,8 @@ public sealed record OsuUser
 {
     public long Id { get; init; }
     public string Username { get; init; } = "";
+    public string? AvatarUrl { get; init; }
+    public string? CountryCode { get; init; }
 
     /// <summary>The profile's default ruleset (osu, taiko, fruits, mania).</summary>
     public string? Playmode { get; init; }
@@ -138,4 +140,7 @@ internal sealed record OsuTokenResponse
     public string TokenType { get; init; } = "";
     public int ExpiresIn { get; init; }
     public string AccessToken { get; init; } = "";
+
+    /// <summary>Only for the authorization-code and refresh-token grants.</summary>
+    public string? RefreshToken { get; init; }
 }

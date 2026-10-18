@@ -406,6 +406,16 @@ small { font-weight: normal; }
 .table.clickable tbody tr { cursor: pointer; }
 .table.clickable tbody tr:hover td { background: var(--panel-2); }
 
+/* Account and friends */
+.account-row { display: flex; align-items: center; gap: 14px; }
+.account-text { flex: 1; }
+.avatar { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; background: var(--panel-2); }
+.avatar.small { width: 28px; height: 28px; border-radius: 6px; }
+.friends { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; max-height: 360px; overflow-y: auto; }
+.friend { display: flex; align-items: center; gap: 8px; background: var(--panel-2); border-radius: 6px; padding: 6px 8px; }
+.friend-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
+a.btn { text-decoration: none; display: inline-block; }
+
 /* Map details */
 .modal-backdrop {
     position: fixed;
