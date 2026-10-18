@@ -65,6 +65,8 @@ public static class ServiceRegistration
         services.AddSingleton<MapDetailsService>();
         services.AddSingleton<OsuAccount>();
         services.AddSingleton<OsuLibrary>();
+        services.AddSingleton<OsuFilesHost>();
+        services.AddSingleton<CollectionsService>();
         return services;
     }
 

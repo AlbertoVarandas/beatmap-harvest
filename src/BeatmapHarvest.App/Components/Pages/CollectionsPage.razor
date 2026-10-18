@@ -1,0 +1,215 @@
+@page "/collections"
+@implements IDisposable
+@inject CollectionsService Collections
+@inject OsuLibrary Library
+
+<div class="panel-head">
+    <h1>Collections</h1>
+    @if (_db is not null)
+    {
+        <div class="actions">
+            <button class="btn" disabled="@(!Collections.IsDirty)" @onclick="Discard">Discard changes</button>
+            <button class="btn primary" disabled="@(!Collections.IsDirty)" @onclick="Save">Save to osu!</button>
+        </div>
+    }
+</div>
+<p class="muted">
+    osu! (stable) collections, as you see them in the game's song select. Changes are kept here until you click
+    <b>Save to osu!</b>, which needs osu! closed and keeps a backup of the previous <code>collection.db</code>.
+    Add maps from <a href="beatmaps">Beatmaps</a> with <b>Add to collection…</b>.
+</p>
+
+@if (_error is not null)
+{
+    <div class="callout error">@_error</div>
+}
+@if (_message is not null)
+{
+    <div class="callout ok">@_message</div>
+}
+
+@if (_db is null)
+{
+    @if (_error is null)
+    {
+        <div class="callout warn">osu! (stable) was not found. <a href="settings">Set the osu! folder in Settings</a>.</div>
+    }
+}
+else
+{
+    @if (Collections.IsDirty && CollectionsService.IsOsuRunning())
+    {
+        <div class="callout warn">osu! is running. Close it before saving, or it will overwrite your changes when it exits.</div>
+    }
+
+    <section class="panel">
+        <div class="folder-field">
+            <input class="input" placeholder="New collection name" @bind="_newName" @bind:event="oninput" @onkeydown="OnNewKey" />
+            <button class="btn" disabled="@string.IsNullOrWhiteSpace(_newName)" @onclick="CreateNew">Create</button>
+        </div>
+    </section>
+
+    @if (_db.Collections.Count == 0)
+    {
+        <p class="muted">No collections yet.</p>
+    }
+
+    @foreach (var collection in _db.Collections)
+    {
+        var installed = collection.Hashes.Count(h => _local.ContainsKey(h));
+        var open = _open.Contains(collection);
+        <section class="panel collection">
+            <div class="panel-head">
+                @if (_renaming == collection)
+                {
+                    <div class="folder-field grow">
+                        <input class="input" @bind="_renameText" @bind:event="oninput" @onkeydown="e => OnRenameKey(e, collection)" />
+                        <button class="btn small" @onclick="() => FinishRename(collection)">OK</button>
+                    </div>
+                }
+                else
+                {
+                    <h2 class="clickable-title" @onclick="() => ToggleOpen(collection)">
+                        @(open ? "▾" : "▸") @collection.Name
+                        <small class="muted">@collection.Hashes.Count difficulties · @installed in osu!</small>
+                    </h2>
+                    <div class="actions">
+                        <button class="btn small" @onclick="() => StartRename(collection)">Rename</button>
+                        @if (_confirmDelete == collection)
+                        {
+                            <button class="btn small primary" @onclick="() => Delete(collection)">Delete</button>
+                            <button class="btn small" @onclick="() => _confirmDelete = null">Cancel</button>
+                        }
+                        else
+                        {
+                            <button class="btn small" @onclick="() => _confirmDelete = collection">Delete…</button>
+                        }
+                    </div>
+                }
+            </div>
+            @if (open)
+            {
+                <div class="dl-list">
+                    @foreach (var hash in collection.Hashes.ToList())
+                    {
+                        <div class="dl-row">
+                            @if (_local.TryGetValue(hash, out var map))
+                            {
+                                <span class="tag have">in osu!</span>
+                                <span class="dl-name">@map.Artist – @map.Title <span class="muted">[@map.Version]</span></span>
+                            }
+                            else
+                            {
+                                <span class="tag">not in osu!</span>
+                                <span class="dl-name muted">Difficulty @hash[..Math.Min(8, hash.Length)]… (shows up once the map is in osu!)</span>
+                            }
+                            <button class="btn small" @onclick="() => Collections.Remove(collection, hash)">Remove</button>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+    }
+}
+
+@code {
+    private CollectionDatabase? _db;
+    private Dictionary<string, LocalBeatmap> _local = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<OsuCollection> _open = [];
+    private string _newName = "";
+    private OsuCollection? _renaming;
+    private string _renameText = "";
+    private OsuCollection? _confirmDelete;
+    private string? _error;
+    private string? _message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Collections.Changed += OnChanged;
+        try
+        {
+            _db = Collections.Get();
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            _error = $"Could not read collection.db: {ex.Message}";
+        }
+        var snapshot = await Library.GetAsync();
+        foreach (var map in snapshot.Database?.Beatmaps ?? [])
+            _local.TryAdd(map.Md5, map);
+    }
+
+    private void CreateNew()
+    {
+        if (string.IsNullOrWhiteSpace(_newName))
+            return;
+        _open.Add(Collections.Create(_newName.Trim()));
+        _newName = "";
+    }
+
+    private void OnNewKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            CreateNew();
+    }
+
+    private void ToggleOpen(OsuCollection collection)
+    {
+        if (!_open.Remove(collection))
+            _open.Add(collection);
+    }
+
+    private void StartRename(OsuCollection collection)
+    {
+        _renaming = collection;
+        _renameText = collection.Name;
+    }
+
+    private void FinishRename(OsuCollection collection)
+    {
+        if (!string.IsNullOrWhiteSpace(_renameText))
+            Collections.Rename(collection, _renameText.Trim());
+        _renaming = null;
+    }
+
+    private void OnRenameKey(KeyboardEventArgs e, OsuCollection collection)
+    {
+        if (e.Key == "Enter")
+            FinishRename(collection);
+        else if (e.Key == "Escape")
+            _renaming = null;
+    }
+
+    private void Delete(OsuCollection collection)
+    {
+        Collections.Delete(collection);
+        _confirmDelete = null;
+    }
+
+    private void Save()
+    {
+        _error = null;
+        _message = null;
+        try
+        {
+            var backup = Collections.Save();
+            _message = backup is null ? "Saved to osu!." : $"Saved to osu!. The previous file was kept as {Path.GetFileName(backup)}.";
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private void Discard()
+    {
+        Collections.Discard();
+        _db = Collections.Get();
+        _open.Clear();
+        _message = "Changes discarded.";
+    }
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Collections.Changed -= OnChanged;
+}

@@ -88,6 +88,16 @@ You can also open the downloads folder (**Open folder**) and double-click the `.
 
 Beatmap Harvest reads osu!'s own map list (`osu!.db`) and the Songs folder, so it also recognises maps whose folder names don't start with their id. It only reads them; osu! can stay open. osu!lazer is not supported.
 
+## Collections
+
+**Collections** shows your osu! collections and lets you create, rename and delete them and remove maps from them. On **Beatmaps**, **Add to collection…** adds every difficulty of the selected maps to a collection. Maps not in osu! yet can be included too: Beatmap Harvest looks them up on osu! (about one per second), and they appear in the collection as soon as you download them.
+
+Changes stay in Beatmap Harvest until you click **Save to osu!**. Close osu! first, because osu! rewrites its collections when it exits. Each save keeps a copy of the previous file next to it (`collection.db.<date>.bak`).
+
+## Skins
+
+**Skins** lists the skins installed in osu! with their author and a preview of their main elements (cursor, hit circles, rank letters, mania notes…), and marks the one in use.
+
 ## Settings
 
 Each folder can be typed, picked with **Browse…**, or set back to its default with **Default**.
