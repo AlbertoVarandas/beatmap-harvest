@@ -1,10 +1,26 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject ProfileLibrary Profiles
 
 <div class="shell">
     <nav class="sidebar">
         <div class="brand">beatmap<span>harvest</span></div>
         <NavLink class="nav-item" href="" Match="NavLinkMatch.All">Harvest</NavLink>
-        <NavLink class="nav-item" href="beatmaps">Beatmaps</NavLink>
+        <NavLink class="nav-item" href="beatmaps" Match="NavLinkMatch.All">Beatmaps</NavLink>
+        @if (_profiles.Count > 0)
+        {
+            @* One entry per harvested profile; each opens that player's beatmaps. *@
+            <div class="nav-sub">
+                @foreach (var profile in _profiles)
+                {
+                    <NavLink class="nav-sub-item" href="@ProfileHref(profile)" Match="NavLinkMatch.All"
+                             title="@ProfileTitle(profile)">
+                        <span class="nav-sub-name">@profile.Username</span>
+                        <small>@profile.Mapsets</small>
+                    </NavLink>
+                }
+            </div>
+        }
         <NavLink class="nav-item" href="downloads">Downloads</NavLink>
         <NavLink class="nav-item" href="settings">Settings</NavLink>
     </nav>
@@ -14,3 +30,27 @@
         </div>
     </main>
 </div>
+
+@code {
+    private IReadOnlyList<ProfileEntry> _profiles = [];
+
+    protected override void OnInitialized()
+    {
+        _profiles = Profiles.Profiles;
+        Profiles.Changed += OnProfilesChanged;
+    }
+
+    private void OnProfilesChanged() => _ = InvokeAsync(() =>
+    {
+        _profiles = Profiles.Profiles;
+        StateHasChanged();
+    });
+
+    private static string ProfileHref(ProfileEntry profile) =>
+        string.Create(CultureInfo.InvariantCulture, $"beatmaps/{profile.UserId}");
+
+    private static string ProfileTitle(ProfileEntry profile) =>
+        $"{profile.Username} · {profile.Mapsets} beatmapsets · harvested {profile.HarvestedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)}";
+
+    public void Dispose() => Profiles.Changed -= OnProfilesChanged;
+}

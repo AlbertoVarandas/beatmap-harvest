@@ -1,6 +1,5 @@
 using BeatmapHarvest.Core.Harvesting;
 using BeatmapHarvest.Core.Osu;
-using BeatmapHarvest.Core.Storage;
 
 namespace BeatmapHarvest.App.Services;
 
@@ -8,7 +7,7 @@ namespace BeatmapHarvest.App.Services;
 /// App-wide harvest state. Lives outside the pages so a running harvest survives navigation.
 /// Components subscribe to <see cref="Changed"/> and re-render.
 /// </summary>
-public sealed class HarvestSession(ProfileHarvester harvester, HarvestStore store) : IDisposable
+public sealed class HarvestSession(ProfileHarvester harvester, ProfileLibrary profiles) : IDisposable
 {
     private const int MaxLogLines = 300;
 
@@ -45,9 +44,20 @@ public sealed class HarvestSession(ProfileHarvester harvester, HarvestStore stor
         if (_loaded || IsRunning)
             return;
         _loaded = true;
-        var saved = store.LoadAll();
-        if (saved.Count > 0)
-            SetResult(saved[0]);
+        if (profiles.Latest is { } latest)
+            SetResult(latest);
+    }
+
+    /// <summary>Called when a profile is removed, so the Harvest page stops showing it.</summary>
+    public void Forget(long userId)
+    {
+        if (Current?.UserId != userId)
+            return;
+        Current = null;
+        Summary = null;
+        if (profiles.Latest is { } latest)
+            SetResult(latest);
+        Changed?.Invoke();
     }
 
     public async Task StartAsync(UserReference profile, HarvestOptions options)
@@ -68,8 +78,8 @@ public sealed class HarvestSession(ProfileHarvester harvester, HarvestStore stor
         {
             var progress = new Progress(this);
             var result = await Task.Run(() => harvester.HarvestAsync(profile, options, progress, _cts.Token)).ConfigureAwait(false);
-            store.Save(result);
             SetResult(result);
+            profiles.Put(result);
         }
         catch (OperationCanceledException)
         {

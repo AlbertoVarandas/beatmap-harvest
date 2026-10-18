@@ -41,6 +41,8 @@ On **Harvest**, enter a profile link (`https://osu.ppy.sh/users/123`), a user id
 
 A progress bar shows how far along it is. A large profile takes a minute or two, because osu! limits how fast the app can ask for data. At the end you see a summary: how many maps were found, your plays, game modes, star range and your most played maps.
 
+You can harvest as many profiles as you like, yours or other players'. Each one appears under **Beatmaps** in the sidebar; click a name to see that player's maps. Each profile keeps its own selection, and **Remove profile…** forgets one (maps you downloaded stay where they are).
+
 To look up a username made only of digits, put `@` in front of it (`@12345`); otherwise it is read as a user id.
 
 ### 2. Choose what to download

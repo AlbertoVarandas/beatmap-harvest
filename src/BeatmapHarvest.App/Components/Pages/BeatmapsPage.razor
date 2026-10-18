@@ -1,9 +1,11 @@
 @page "/beatmaps"
+@page "/beatmaps/{UserId:long}"
 @page "/select"
 @using System.Text.Json
 @using BeatmapHarvest.Core.Json
 @implements IDisposable
 @inject HarvestSession Harvest
+@inject ProfileLibrary Profiles
 @inject SelectorState State
 @inject DownloadSession Downloads
 @inject DownloadLedger Ledger
@@ -13,20 +15,39 @@
 
 <div class="beatmaps-page">
 <div class="panel-head">
-    <h1>Beatmaps</h1>
+    <h1>Beatmaps @if (_result is not null) { <small class="muted">@_result.Username</small> }</h1>
     @if (_result is not null)
     {
         <div class="actions">
             <button class="btn small" @onclick="SaveConfig">Save selection…</button>
             <button class="btn small" @onclick="LoadConfig">Load selection…</button>
+            <button class="btn small" @onclick="() => _confirmRemove = true">Remove profile…</button>
         </div>
     }
 </div>
 
+@if (_confirmRemove && _result is not null)
+{
+    <div class="callout warn">
+        Remove <b>@_result.Username</b> from Beatmap Harvest? Its harvested list is deleted; downloaded maps stay where they are.
+        <div class="actions">
+            <button class="btn primary" @onclick="RemoveProfile">Remove</button>
+            <button class="btn" @onclick="() => _confirmRemove = false">Cancel</button>
+        </div>
+    </div>
+}
+
 @if (_result is null)
 {
     <p class="muted">Choose which beatmapsets of a harvested profile to download.</p>
-    <div class="callout warn">No harvest yet. <a href="">Harvest a profile</a> first.</div>
+    @if (UserId is not null)
+    {
+        <div class="callout warn">This profile has not been harvested (or was removed). <a href="">Harvest it</a> first.</div>
+    }
+    else
+    {
+        <div class="callout warn">No harvest yet. <a href="">Harvest a profile</a> first.</div>
+    }
 }
 else if (_owned is null)
 {
@@ -165,7 +186,8 @@ else
                     <div class="cover @(_playing == m.Id ? "playing" : "")" title="Play preview" @onclick="() => TogglePreview(m)" @onclick:stopPropagation>
                         @if (m.Cover is not null)
                         {
-                            <img src="@m.Cover" alt="" loading="lazy" />
+                            @* Old maps may have no cover: hide the broken-image icon and keep the plain background. *@
+                            <img src="@m.Cover" alt="" loading="lazy" onerror="this.style.visibility='hidden'" />
                         }
                         @if (m.Preview is not null)
                         {
@@ -260,22 +282,45 @@ else
     private string? _message;
     private bool _messageOk;
 
-    private SelectorConfig Config => State.Config;
-    private SelectionFilters Filters => State.Config.Filters;
+    private bool _confirmRemove;
 
-    protected override async Task OnInitializedAsync()
+    /// <summary>The profile to show; none = the last harvested one.</summary>
+    [Parameter] public long? UserId { get; set; }
+
+    // Each profile keeps its own selection.
+    private SelectorConfig Config => _config!;
+    private SelectionFilters Filters => _config!.Filters;
+    private SelectorConfig? _config;
+
+    protected override void OnInitialized()
     {
         Harvest.Changed += OnSessionChanged;
         Downloads.Changed += OnSessionChanged;
         Harvest.LoadLatest();
-        await LoadHarvestAsync();
     }
 
-    private async Task LoadHarvestAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        _result = Harvest.Current;
+        var target = Target();
+        if (!ReferenceEquals(target, _result) || _owned is null)
+        {
+            _confirmRemove = false;
+            _message = null;
+            StopPreview();
+            await LoadHarvestAsync(target);
+        }
+    }
+
+    private HarvestResult? Target() =>
+        UserId is { } id ? Profiles.Get(id) : Harvest.Current ?? Profiles.Latest;
+
+    private async Task LoadHarvestAsync(HarvestResult? target)
+    {
+        _result = target;
+        _owned = null;
         if (_result is null)
             return;
+        _config = State.For(_result.UserId);
 
         _mapsets = _result.Mapsets;
         _modeCounts = Ruleset.All.ToDictionary(mode => mode, mode => _mapsets.Count(m => m.Difficulties.Any(d => d.Mode == mode)));
@@ -463,7 +508,8 @@ else
                 Show(false, "That file is not a Beatmap Harvest selection.");
                 return;
             }
-            State.Config = loaded;
+            State.Set(_result!.UserId, loaded);
+            _config = loaded;
             SyncInputs();
             Refresh();
             Show(true, $"Loaded {Path.GetFileName(path)}: {_selected.Count} maps selected.");
@@ -480,12 +526,25 @@ else
         _message = message;
     }
 
+    // A finished harvest may be a newer version of the profile on screen.
     private void OnSessionChanged() => _ = InvokeAsync(async () =>
     {
-        if (!Harvest.IsRunning && !ReferenceEquals(Harvest.Current, _result))
-            await LoadHarvestAsync();
+        if (!Harvest.IsRunning && Target() is var target && !ReferenceEquals(target, _result))
+            await LoadHarvestAsync(target);
         StateHasChanged();
     });
+
+    private void RemoveProfile()
+    {
+        if (_result is null)
+            return;
+        var id = _result.UserId;
+        Profiles.Remove(id);
+        State.Forget(id);
+        Harvest.Forget(id);
+        _confirmRemove = false;
+        Nav.NavigateTo("beatmaps");
+    }
 
     private static string DiffTitle(DifficultyInfo d) =>
         $"{d.Version} · {Format.Mode(d.Mode)} · {Format.Stars(d.Stars)}★ · {Format.Length(d.LengthSeconds)}"
