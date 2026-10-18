@@ -25,17 +25,17 @@ Beatmap Harvest reads profiles through the official osu! API. To use the API, yo
 
 1. Open your [osu! account settings](https://osu.ppy.sh/home/account/edit#oauth) and scroll to **OAuth**.
 2. Click **New OAuth Application**.
-3. Type any name (for example `beatmap-harvest`), leave **Application Callback URLs** empty and click **Register application**.
+3. Type any name (for example `beatmap-harvest`), put `http://localhost:7270/callback` in **Application Callback URLs** (Settings has a **Copy** button for it) and click **Register application**.
 4. Click **Edit** on the new application. Copy the **Client ID**, then click **Show client secret** and copy the **Client Secret**.
-5. In Beatmap Harvest, open **Settings**, paste both values and click **Test & save**.
+5. Beatmap Harvest opens on **Settings**: paste both values and click **Test & save**. The other tabs unlock.
 
 Use the **OAuth** section, not *Legacy API*.
 
 ### Optional: sign in with your osu! account
 
-Signing in adds a **My profile** button and your **friend list** (with one-click harvest) to the Harvest page. You approve Beatmap Harvest on the osu! website; the app never sees your password.
+Signing in harvests your own profile straight away, keeps it at the top of the profile list (in bold), adds a **My profile** button, and unlocks **My friends**. You approve Beatmap Harvest on the osu! website; the app never sees your password.
 
-1. On the osu! website, click **Edit** on your OAuth application and add `http://localhost:7270/callback` to **Application Callback URLs** (Settings has a **Copy** button for it).
+1. Make sure `http://localhost:7270/callback` is in your OAuth application's **Application Callback URLs** (step 3 above; you can add it later with **Edit**).
 2. In **Settings → osu! account**, click **Sign in with osu!** and approve the app in the browser.
 
 **Sign out** removes the sign-in from the app and cancels it on osu!. Downloads work the same either way: osu! does not let other apps download beatmaps, so they always come from mirrors.
@@ -46,17 +46,19 @@ Your client secret works like a password: don't share it. Beatmap Harvest stores
 
 ### 1. Harvest a profile
 
-On **Harvest**, enter a profile link (`https://osu.ppy.sh/users/123`), a user id or a username, then click **Start harvest**.
+At the top of **Beatmaps**, enter a profile link (`https://osu.ppy.sh/users/123`), a user id or a username, then click **Harvest**.
 
-A progress bar shows how far along it is. A large profile takes a minute or two, because osu! limits how fast the app can ask for data. At the end you see a summary: how many maps were found, your plays, game modes, star range and your most played maps.
+A progress bar shows how far along it is. A large profile takes a minute or two, because osu! limits how fast the app can ask for data. When it finishes, the profile opens on **Overview**: how many maps were found, plays, game modes, star range and the most played maps.
 
-You can harvest as many profiles as you like, yours or other players'. Each one appears under **Beatmaps** in the sidebar; click a name to see that player's maps. Each profile keeps its own selection, and **Remove profile…** forgets one (maps you downloaded stay where they are).
+You can harvest as many profiles as you like, yours or other players'. Each one appears under **Beatmaps** in the sidebar; click a name to open it. Each profile keeps its own selection, and **Remove profile…** forgets one (maps you downloaded stay where they are).
+
+If you are signed in, **My friends** lists your osu! friends with a **Harvest** button for each.
 
 To look up a username made only of digits, put `@` in front of it (`@12345`); otherwise it is read as a user id.
 
 ### 2. Choose what to download
 
-**Beatmaps** shows every map that was found. There are two ways to choose:
+The **Maps** tab of a profile shows every map that was found. There are two ways to choose:
 
 - **By filters**: everything that matches the filters is selected. You can filter by game mode, stars, length, how many times you played a difficulty, map status and where the map was found (best scores, first places, most played…). Click a map to add or remove it on top of the filters.
 - **Hand-picked**: only the maps you click are selected.
@@ -64,7 +66,7 @@ To look up a username made only of digits, put `@` in front of it (`@12345`); ot
 Some useful extras:
 
 - Click a cover to hear a preview of the song.
-- Click **i** on a map (or a song in **Most played** on the Harvest page) to see its details: cover, BPM, length, ranked date, global plays, and every difficulty with its stars, CS, AR, OD, HP, max combo and your plays.
+- Click **i** on a map (or a song in **Most played** on the Overview tab) to see its details: cover, BPM, length, ranked date, global plays, and every difficulty with its stars, CS, AR, OD, HP, max combo and your plays.
 - Maps already in osu! are tagged **In osu!**, and maps you downloaded but haven't added to osu! yet are tagged **Downloaded**. Both are skipped unless you untick **Skip maps I already have**. The **Library** filter shows only maps that are in osu!, only downloaded, or not on this PC.
 - Use the search box to find a song, artist, mapper or difficulty.
 - **Outside the filters: Dim / Hide** chooses whether maps and difficulties that don't match the filters are shown faded or left out of the list.

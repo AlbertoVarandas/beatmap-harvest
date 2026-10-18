@@ -1,0 +1,47 @@
+@* Totals of a harvested profile and its most played difficulties (click one for its details). *@
+
+<div class="stats">
+    <div class="stat"><b>@Summary.Mapsets</b><span>beatmapsets</span></div>
+    <div class="stat"><b>@Summary.Difficulties</b><span>difficulties</span></div>
+    <div class="stat"><b>@Summary.Plays</b><span>plays</span></div>
+    <div class="stat"><b>@Format.Duration(Summary.TotalSongLength)</b><span>of music</span></div>
+    <div class="stat"><b>@Summary.MinStars.ToString("0.##", CultureInfo.CurrentCulture)–@Summary.MaxStars.ToString("0.##", CultureInfo.CurrentCulture)★</b><span>average @Summary.AverageStars.ToString("0.##", CultureInfo.CurrentCulture)★</span></div>
+</div>
+
+<div class="chips">
+    @foreach (var (mode, count) in Summary.DifficultiesByMode)
+    {
+        <span class="chip mode-@mode on">@Format.Mode(mode) · @count</span>
+    }
+</div>
+
+@if (Summary.MostPlayed.Count > 0)
+{
+    <h3>Most played</h3>
+    <table class="table clickable">
+        <tbody>
+            @foreach (var entry in Summary.MostPlayed)
+            {
+                <tr title="Details" @onclick="() => _details = entry.Mapset">
+                    <td class="num">@entry.Difficulty.Plays×</td>
+                    <td>@entry.Mapset.Artist – @entry.Mapset.Title <span class="muted">[@entry.Difficulty.Version]</span></td>
+                    <td class="num">@entry.Difficulty.Stars.ToString("0.00", CultureInfo.CurrentCulture)★</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (_details is not null)
+{
+    <MapDetailsDialog Mapset="_details" Owned="Owned(_details.Id)" OnClose="() => _details = null" />
+}
+
+@code {
+    [Parameter, EditorRequired] public HarvestSummary Summary { get; set; } = default!;
+
+    /// <summary>Whether a beatmapset is already on this PC (for the details panel).</summary>
+    [Parameter] public Func<long, bool> Owned { get; set; } = _ => false;
+
+    private MapsetInfo? _details;
+}

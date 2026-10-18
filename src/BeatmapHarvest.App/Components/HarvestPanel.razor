@@ -1,0 +1,110 @@
+@* Harvest a profile: input, modes, start/cancel, and the progress of the running harvest. *@
+@implements IDisposable
+@inject HarvestSession Session
+@inject SettingsStore Settings
+@inject OsuAccount Account
+
+<section class="panel harvest-panel">
+    <div class="folder-field">
+        <input class="input" aria-label="Profile" placeholder="Profile link, id or username"
+               @bind="_profileInput" @bind:event="oninput" disabled="@Session.IsRunning" @onkeydown="OnKeyDown" />
+        @if (Account.User is { } me)
+        {
+            <button class="btn" type="button" disabled="@Session.IsRunning" title="@me.Username"
+                    @onclick="() => _profileInput = me.UserId.ToString(CultureInfo.InvariantCulture)">My profile</button>
+        }
+        @if (Session.IsRunning)
+        {
+            <button class="btn" @onclick="Session.Cancel">Cancel</button>
+        }
+        else
+        {
+            <button class="btn primary" @onclick="StartAsync">Harvest</button>
+        }
+    </div>
+    @if (_inputError is not null)
+    {
+        <div class="error-text spaced">@_inputError</div>
+    }
+
+    <div class="harvest-options">
+        <span class="muted">Score lists from</span>
+        <div class="chips">
+            @foreach (var mode in Ruleset.All)
+            {
+                <label class="chip small mode-@mode @(_scoreModes.Contains(mode) ? "on" : "")">
+                    <input type="checkbox" checked="@_scoreModes.Contains(mode)" disabled="@Session.IsRunning"
+                           @onchange="e => ToggleMode(mode, (bool)e.Value!)" />
+                    @Format.Mode(mode)
+                </label>
+            }
+        </div>
+    </div>
+
+    @if (Session.IsRunning)
+    {
+        <div class="progress-row">
+            <div class="progress"><div style="width:@Format.Percent(Session.Fraction)"></div></div>
+            <b>@Format.Percent(Session.Fraction, decimals: 0)</b>
+        </div>
+        <p class="muted progress-status">@Session.Status</p>
+    }
+    @if (Session.Error is not null)
+    {
+        <div class="callout error">@Session.Error</div>
+    }
+    @if (Session.Log.Count > 0)
+    {
+        <details class="log-details" open="@Session.IsRunning">
+            <summary>Details</summary>
+            @* Newest first: .log reverses the column, so it stays pinned to the newest line without JS. *@
+            <div class="log">
+                @foreach (var line in Session.Log.Reverse())
+                {
+                    <div>@line</div>
+                }
+            </div>
+        </details>
+    }
+</section>
+
+@code {
+    private string _profileInput = "";
+    private string? _inputError;
+    private readonly HashSet<string> _scoreModes = [.. Ruleset.All];
+
+    protected override void OnInitialized()
+    {
+        _profileInput = Settings.Load().LastProfile ?? "";
+        Session.Changed += OnChanged;
+        Account.Changed += OnChanged;
+    }
+
+    private async Task StartAsync()
+    {
+        if (!UserReference.TryParse(_profileInput, out var profile))
+        {
+            _inputError = "Enter a profile link (osu.ppy.sh/users/…), an id or a username.";
+            return;
+        }
+        _inputError = null;
+        Settings.Save(Settings.Load() with { LastProfile = _profileInput.Trim() });
+        await Session.StartAsync(profile, new HarvestOptions { ScoreModes = Ruleset.All.Where(_scoreModes.Contains).ToList() });
+    }
+
+    private Task OnKeyDown(KeyboardEventArgs e) =>
+        e.Key == "Enter" && !Session.IsRunning ? StartAsync() : Task.CompletedTask;
+
+    private void ToggleMode(string mode, bool on)
+    {
+        if (on) _scoreModes.Add(mode); else _scoreModes.Remove(mode);
+    }
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Session.Changed -= OnChanged;
+        Account.Changed -= OnChanged;
+    }
+}

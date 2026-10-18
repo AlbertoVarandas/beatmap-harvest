@@ -1,0 +1,18 @@
+@* A sidebar link that can be disabled (shown greyed out with a hint instead of a link). *@
+
+@if (Enabled)
+{
+    <NavLink class="nav-item" href="@Href" Match="Match">@Text</NavLink>
+}
+else
+{
+    <span class="nav-item disabled" title="@DisabledHint" aria-disabled="true">@Text</span>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Href { get; set; } = "";
+    [Parameter, EditorRequired] public string Text { get; set; } = "";
+    [Parameter] public bool Enabled { get; set; } = true;
+    [Parameter] public string? DisabledHint { get; set; }
+    [Parameter] public NavLinkMatch Match { get; set; } = NavLinkMatch.Prefix;
+}

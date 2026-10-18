@@ -1,19 +1,22 @@
 @inherits LayoutComponentBase
 @implements IDisposable
 @inject ProfileLibrary Profiles
+@inject SetupState Setup
+@inject OsuAccount Account
+@inject NavigationManager Nav
 
 <div class="shell">
     <nav class="sidebar">
         <div class="brand">beatmap<span>harvest</span></div>
-        <NavLink class="nav-item" href="" Match="NavLinkMatch.All">Harvest</NavLink>
-        <NavLink class="nav-item" href="beatmaps" Match="NavLinkMatch.All">Beatmaps</NavLink>
-        @if (_profiles.Count > 0)
+
+        <NavEntry Href="beatmaps" Text="Beatmaps" Match="NavLinkMatch.All" Enabled="Setup.HasCredentials" DisabledHint="@NeedsCredentials" />
+        @if (Setup.HasCredentials && _profiles.Count > 0)
         {
-            @* One entry per harvested profile; each opens that player's beatmaps. *@
+            @* One entry per harvested profile; the signed-in user's own profile comes first, in bold. *@
             <div class="nav-sub">
                 @foreach (var profile in _profiles)
                 {
-                    <NavLink class="nav-sub-item" href="@ProfileHref(profile)" Match="NavLinkMatch.All"
+                    <NavLink class="@($"nav-sub-item{(IsMe(profile) ? " me" : "")}")" href="@ProfileHref(profile)" Match="NavLinkMatch.All"
                              title="@ProfileTitle(profile)">
                         <span class="nav-sub-name">@profile.Username</span>
                         <small>@profile.Mapsets</small>
@@ -21,11 +24,13 @@
                 }
             </div>
         }
-        <NavLink class="nav-item" href="downloads">Downloads</NavLink>
-        <NavLink class="nav-item" href="library">osu! library</NavLink>
-        <NavLink class="nav-item" href="collections">Collections</NavLink>
-        <NavLink class="nav-item" href="skins">Skins</NavLink>
-        <NavLink class="nav-item" href="settings">Settings</NavLink>
+        <NavEntry Href="friends" Text="My friends" Enabled="@(Setup.HasCredentials && Account.User is not null)"
+                  DisabledHint="@(Setup.HasCredentials ? "Sign in with your osu! account in Settings" : NeedsCredentials)" />
+        <NavEntry Href="downloads" Text="Downloads" Enabled="Setup.HasCredentials" DisabledHint="@NeedsCredentials" />
+        <NavEntry Href="library" Text="osu! library" Enabled="Setup.HasCredentials" DisabledHint="@NeedsCredentials" />
+        <NavEntry Href="collections" Text="Collections" Enabled="Setup.HasCredentials" DisabledHint="@NeedsCredentials" />
+        <NavEntry Href="skins" Text="Skins" Enabled="Setup.HasCredentials" DisabledHint="@NeedsCredentials" />
+        <NavEntry Href="settings" Text="Settings" />
     </nav>
     <main class="content">
         <div class="page">
@@ -35,19 +40,49 @@
 </div>
 
 @code {
+    private const string NeedsCredentials = "Add your osu! API credentials in Settings first";
+
     private IReadOnlyList<ProfileEntry> _profiles = [];
 
     protected override void OnInitialized()
     {
-        _profiles = Profiles.Profiles;
-        Profiles.Changed += OnProfilesChanged;
+        Refresh();
+        Profiles.Changed += OnChanged;
+        Setup.Changed += OnChanged;
+        Account.Changed += OnChanged;
+        Nav.LocationChanged += OnLocationChanged;
     }
 
-    private void OnProfilesChanged() => _ = InvokeAsync(() =>
+    private void Refresh()
     {
-        _profiles = Profiles.Profiles;
+        var me = Account.User?.UserId;
+        _profiles = Profiles.Profiles
+            .OrderByDescending(p => p.UserId == me)
+            .ToList();
+    }
+
+    private bool IsMe(ProfileEntry profile) => Account.User?.UserId == profile.UserId;
+
+    private void OnChanged() => _ = InvokeAsync(() =>
+    {
+        Refresh();
+        Guard();
         StateHasChanged();
     });
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => Guard();
+
+    /// <summary>Keeps the user out of tabs that are not available yet (e.g. through a link).</summary>
+    private void Guard()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0];
+        if (path.Length == 0 || path.StartsWith("settings", StringComparison.OrdinalIgnoreCase))
+            return;
+        if (!Setup.HasCredentials)
+            Nav.NavigateTo("settings", replace: true);
+        else if (path.StartsWith("friends", StringComparison.OrdinalIgnoreCase) && Account.User is null)
+            Nav.NavigateTo("beatmaps", replace: true);
+    }
 
     private static string ProfileHref(ProfileEntry profile) =>
         string.Create(CultureInfo.InvariantCulture, $"beatmaps/{profile.UserId}");
@@ -55,5 +90,11 @@
     private static string ProfileTitle(ProfileEntry profile) =>
         $"{profile.Username} · {profile.Mapsets} beatmapsets · harvested {profile.HarvestedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)}";
 
-    public void Dispose() => Profiles.Changed -= OnProfilesChanged;
+    public void Dispose()
+    {
+        Profiles.Changed -= OnChanged;
+        Setup.Changed -= OnChanged;
+        Account.Changed -= OnChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
 }

@@ -6,8 +6,13 @@
 @inject AppPaths Paths
 @inject OsuLibrary Library
 @inject OsuFilesHost FilesHost
+@inject SetupState Setup
 
 <h1>Settings</h1>
+@if (!Setup.HasCredentials)
+{
+    <div class="callout warn">Welcome! Add your osu! API credentials below to start using Beatmap Harvest.</div>
+}
 
 <section class="panel">
     <h2>osu! API credentials</h2>
@@ -147,6 +152,7 @@
 
             Credentials.Save(credentials);
             Tokens.Invalidate();
+            Setup.Refresh();
             _hasSaved = true;
             _clientSecret = "";
             _credentialOk = true;
@@ -170,6 +176,7 @@
     {
         Credentials.Clear();
         Tokens.Invalidate();
+        Setup.Refresh();
         _hasSaved = false;
         _clientId = "";
         _clientSecret = "";

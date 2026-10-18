@@ -14,44 +14,59 @@
 @inject NavigationManager Nav
 
 <div class="beatmaps-page">
-<div class="panel-head">
-    <h1>Beatmaps @if (_result is not null) { <small class="muted">@_result.Username</small> }</h1>
-    @if (_result is not null)
-    {
-        <div class="actions">
-            <button class="btn small" @onclick="SaveConfig">Save selection…</button>
-            <button class="btn small" @onclick="LoadConfig">Load selection…</button>
+<h1>Beatmaps</h1>
+
+<HarvestPanel />
+
+@if (_result is not null)
+{
+    <div class="profile-head">
+        <h2>@_result.Username <small class="muted">harvested @_result.HarvestedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</small></h2>
+        <div class="segmented">
+            <button class="@(_tab == BeatmapsTab.Overview ? "on" : "")" @onclick="() => _tab = BeatmapsTab.Overview">Overview</button>
+            <button class="@(_tab == BeatmapsTab.Maps ? "on" : "")" @onclick="() => _tab = BeatmapsTab.Maps">Maps</button>
+        </div>
+        <div class="actions push-right">
+            @if (_tab == BeatmapsTab.Maps)
+            {
+                <button class="btn small" @onclick="SaveConfig">Save selection…</button>
+                <button class="btn small" @onclick="LoadConfig">Load selection…</button>
+            }
             <button class="btn small" @onclick="() => _confirmRemove = true">Remove profile…</button>
         </div>
-    }
-</div>
-
-@if (_confirmRemove && _result is not null)
-{
-    <div class="callout warn">
-        Remove <b>@_result.Username</b> from Beatmap Harvest? Its harvested list is deleted; downloaded maps stay where they are.
-        <div class="actions">
-            <button class="btn primary" @onclick="RemoveProfile">Remove</button>
-            <button class="btn" @onclick="() => _confirmRemove = false">Cancel</button>
-        </div>
     </div>
+
+    @if (_confirmRemove)
+    {
+        <div class="callout warn">
+            Remove <b>@_result.Username</b>? Its list is deleted; downloaded maps stay where they are.
+            <div class="actions">
+                <button class="btn primary" @onclick="RemoveProfile">Remove</button>
+                <button class="btn" @onclick="() => _confirmRemove = false">Cancel</button>
+            </div>
+        </div>
+    }
 }
 
 @if (_result is null)
 {
-    <p class="muted">Choose which beatmapsets of a harvested profile to download.</p>
     @if (UserId is not null)
     {
-        <div class="callout warn">This profile has not been harvested (or was removed). <a href="">Harvest it</a> first.</div>
+        <div class="callout warn">This profile has not been harvested yet, or was removed.</div>
     }
-    else
+    else if (!Harvest.IsRunning)
     {
-        <div class="callout warn">No harvest yet. <a href="">Harvest a profile</a> first.</div>
+        <p class="muted">Harvest a profile to see its beatmaps.</p>
     }
+}
+else if (_tab == BeatmapsTab.Overview)
+{
+    <section class="panel">
+        <ProfileOverview Summary="_summary!" Owned="id => _owned?.Owns(id) == true" />
+    </section>
 }
 else if (_owned is null)
 {
-    <p class="muted">@_result.Username · @_mapsets.Count beatmapsets</p>
     <div class="actions"><span class="spinner"></span> Checking which maps you already have…</div>
 }
 else
@@ -307,6 +322,15 @@ else
 
     private bool _confirmRemove;
 
+    private enum BeatmapsTab
+    {
+        Overview,
+        Maps,
+    }
+
+    private BeatmapsTab _tab = BeatmapsTab.Maps;
+    private HarvestSummary? _summary;
+
     /// <summary>The profile to show; none = the last harvested one.</summary>
     [Parameter] public long? UserId { get; set; }
 
@@ -318,10 +342,18 @@ else
     protected override void OnInitialized()
     {
         Harvest.Changed += OnSessionChanged;
+        Harvest.Completed += OnHarvestCompleted;
         Downloads.Changed += OnSessionChanged;
         Library.Changed += OnLibraryChanged;
         Harvest.LoadLatest();
     }
+
+    // A finished harvest opens that profile's overview.
+    private void OnHarvestCompleted(HarvestResult result) => _ = InvokeAsync(() =>
+    {
+        _tab = BeatmapsTab.Overview;
+        Nav.NavigateTo(string.Create(CultureInfo.InvariantCulture, $"beatmaps/{result.UserId}"));
+    });
 
     protected override async Task OnParametersSetAsync()
     {
@@ -347,6 +379,7 @@ else
         _config = State.For(_result.UserId);
 
         _mapsets = _result.Mapsets;
+        _summary = HarvestSummary.From(_mapsets);
         _modeCounts = Ruleset.All.ToDictionary(mode => mode, mode => _mapsets.Count(m => m.Difficulties.Any(d => d.Mode == mode)));
         _statuses = _mapsets.Select(m => m.Status ?? "").Where(s => s.Length > 0).Distinct()
             .OrderBy(s => Array.IndexOf(StatusOrder, s) is var i and >= 0 ? i : int.MaxValue).ThenBy(s => s, StringComparer.Ordinal)
@@ -606,6 +639,7 @@ else
     public void Dispose()
     {
         Harvest.Changed -= OnSessionChanged;
+        Harvest.Completed -= OnHarvestCompleted;
         Downloads.Changed -= OnSessionChanged;
         Library.Changed -= OnLibraryChanged;
     }

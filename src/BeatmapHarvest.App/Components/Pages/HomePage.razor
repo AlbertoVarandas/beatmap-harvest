@@ -1,0 +1,10 @@
+@page "/"
+@inject SetupState Setup
+@inject NavigationManager Nav
+
+@* Where the app opens: Settings until the osu! API credentials are saved, then Beatmaps. *@
+
+@code {
+    protected override void OnInitialized() =>
+        Nav.NavigateTo(Setup.HasCredentials ? "beatmaps" : "settings", replace: true);
+}
