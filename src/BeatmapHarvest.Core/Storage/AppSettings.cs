@@ -13,6 +13,9 @@ public sealed record AppSettings
     /// <summary>null → <see cref="AppPaths.DefaultSongsDirectory"/>.</summary>
     public string? SongsDirectory { get; init; }
 
+    /// <summary>Where "Move downloads" puts the .osz files; null → the Songs folder.</summary>
+    public string? MoveToDirectory { get; init; }
+
     public int MaxParallelDownloads { get; init; } = 2;
 
     public IReadOnlyList<MirrorDefinition> Mirrors { get; init; } = MirrorDefinition.Defaults;

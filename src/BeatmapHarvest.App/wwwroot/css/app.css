@@ -86,6 +86,7 @@ small { font-weight: normal; }
 .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .field > span { font-weight: 700; }
+.field > span small { margin-left: 6px; }
 .field.narrow { max-width: 200px; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .input {
@@ -98,6 +99,8 @@ small { font-weight: normal; }
 }
 .input:focus { outline: none; border-color: var(--pink); }
 .steps { padding-left: 20px; line-height: 1.7; }
+.folder-field { display: flex; gap: 8px; }
+.folder-field .input { flex: 1; min-width: 0; }
 
 .actions { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
 .btn {

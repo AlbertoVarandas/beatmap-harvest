@@ -50,14 +50,12 @@
 
 <section class="panel">
     <h2>Folders and downloads</h2>
-    <label class="field">
-        <span>Downloads folder</span>
-        <input class="input" placeholder="@Paths.DefaultDownloadsDirectory" @bind="_downloads" />
-    </label>
-    <label class="field">
-        <span>osu! Songs folder <small class="muted">(osu! stable; used to detect maps you already have)</small></span>
-        <input class="input" placeholder="@AppPaths.DefaultSongsDirectory" @bind="_songs" />
-    </label>
+    <FolderField Label="Downloads folder" Hint="where .osz files are saved"
+                 @bind-Value="_downloads" DefaultPath="@Paths.DefaultDownloadsDirectory" />
+    <FolderField Label="osu! Songs folder" Hint="osu! stable; used to detect maps you already have"
+                 @bind-Value="_songs" DefaultPath="@AppPaths.DefaultSongsDirectory" />
+    <FolderField Label="Move downloads to" Hint="used by Downloads → Move; by default the osu! Songs folder"
+                 @bind-Value="_moveTo" DefaultPath="@(_songs ?? AppPaths.DefaultSongsDirectory)" />
     <label class="field narrow">
         <span>Parallel downloads</span>
         <input class="input" type="number" min="1" max="6" @bind="_parallel" />
@@ -85,6 +83,7 @@
 
     private string? _downloads;
     private string? _songs;
+    private string? _moveTo;
     private int _parallel;
     private string? _foldersMessage;
 
@@ -97,6 +96,7 @@
         var settings = Settings.Load();
         _downloads = settings.DownloadsDirectory;
         _songs = settings.SongsDirectory;
+        _moveTo = settings.MoveToDirectory;
         _parallel = settings.MaxParallelDownloads;
     }
 
@@ -169,8 +169,9 @@
     {
         Settings.Save(Settings.Load() with
         {
-            DownloadsDirectory = string.IsNullOrWhiteSpace(_downloads) ? null : _downloads.Trim(),
-            SongsDirectory = string.IsNullOrWhiteSpace(_songs) ? null : _songs.Trim(),
+            DownloadsDirectory = _downloads,
+            SongsDirectory = _songs,
+            MoveToDirectory = _moveTo,
             MaxParallelDownloads = Math.Clamp(_parallel, 1, 6),
         });
         _parallel = Math.Clamp(_parallel, 1, 6);
