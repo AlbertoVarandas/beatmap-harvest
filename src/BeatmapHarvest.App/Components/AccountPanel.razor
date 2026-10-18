@@ -1,0 +1,119 @@
+@* Optional "Sign in with osu!" (OAuth authorization code). *@
+@implements IDisposable
+@inject OsuAccount Account
+
+<section class="panel">
+    <h2>osu! account <small class="muted">optional</small></h2>
+
+    @if (Account.User is { } user)
+    {
+        <div class="account-row">
+            @if (user.AvatarUrl is not null)
+            {
+                <img class="avatar" src="@user.AvatarUrl" alt="" />
+            }
+            <div class="account-text">
+                <b>@user.Username</b>
+                <div class="muted">Signed in. Harvest now has <b>My profile</b> and your friend list.</div>
+            </div>
+            <button class="btn" disabled="@_busy" @onclick="SignOutAsync">Sign out</button>
+        </div>
+    }
+    else
+    {
+        <p class="muted">
+            Sign in to harvest your own profile with one click and pick friends from your friend list.
+            You approve Beatmap Harvest on osu.ppy.sh; the app never sees your password.
+            Downloads still come from mirrors, because osu! does not let other apps download beatmaps.
+        </p>
+        <ol class="steps">
+            <li>
+                In your <a href="" @onclick="OpenOAuthPage" @onclick:preventDefault>OAuth application</a>, click <b>Edit</b>
+                and add this to <b>Application Callback URLs</b>:
+                <code>@OsuAccount.RedirectUri</code>
+                <button class="btn small" @onclick="CopyRedirect">@(_copied ? "Copied" : "Copy")</button>
+            </li>
+            <li>Click <b>Sign in with osu!</b> and approve the app in the browser window that opens.</li>
+        </ol>
+        <div class="actions">
+            @if (Account.IsSigningIn)
+            {
+                <span class="spinner"></span>
+                <span>Waiting for you to approve in the browser…</span>
+                <button class="btn" @onclick="Account.CancelSignIn">Cancel</button>
+            }
+            else
+            {
+                <button class="btn primary" disabled="@(!HasCredentials)" @onclick="SignInAsync">Sign in with osu!</button>
+                @if (!HasCredentials)
+                {
+                    <span class="muted">Save your client id and secret first.</span>
+                }
+            }
+        </div>
+    }
+
+    @if (_message is not null)
+    {
+        <div class="callout @(_ok ? "ok" : "error")">@_message</div>
+    }
+</section>
+
+@code {
+    [Parameter] public bool HasCredentials { get; set; }
+
+    private bool _busy;
+    private bool _copied;
+    private bool _ok;
+    private string? _message;
+
+    protected override void OnInitialized() => Account.Changed += OnChanged;
+
+    private async Task SignInAsync()
+    {
+        _message = null;
+        try
+        {
+            await Account.SignInAsync();
+            _ok = true;
+            _message = $"Signed in as {Account.User?.Username}.";
+        }
+        catch (OsuApiException ex)
+        {
+            _ok = false;
+            _message = ex.Message;
+        }
+        catch (HttpRequestException ex)
+        {
+            _ok = false;
+            _message = $"Could not reach osu.ppy.sh: {ex.Message}";
+        }
+    }
+
+    private async Task SignOutAsync()
+    {
+        _busy = true;
+        try
+        {
+            await Account.SignOutAsync();
+            _ok = true;
+            _message = "Signed out.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void CopyRedirect()
+    {
+        ClipboardHelper.Copy(OsuAccount.RedirectUri.ToString());
+        _copied = true;
+    }
+
+    private static void OpenOAuthPage() => ShellLauncher.Open("https://osu.ppy.sh/home/account/edit#oauth");
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Account.Changed -= OnChanged;
+}
