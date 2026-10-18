@@ -14,35 +14,35 @@
 @inject NavigationManager Nav
 
 <div class="beatmaps-page">
-<h1>Beatmaps</h1>
+<h1>@L["Beatmaps"]</h1>
 
 <HarvestPanel />
 
 @if (_result is not null)
 {
     <div class="profile-head">
-        <h2>@_result.Username <small class="muted">harvested @_result.HarvestedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</small></h2>
+        <h2>@_result.Username <small class="muted">@L.F("harvested {0:g}", _result.HarvestedAt.ToLocalTime())</small></h2>
         <div class="segmented">
-            <button class="@(_tab == BeatmapsTab.Overview ? "on" : "")" @onclick="() => _tab = BeatmapsTab.Overview">Overview</button>
-            <button class="@(_tab == BeatmapsTab.Maps ? "on" : "")" @onclick="() => _tab = BeatmapsTab.Maps">Maps</button>
+            <button class="@(_tab == BeatmapsTab.Overview ? "on" : "")" @onclick="() => _tab = BeatmapsTab.Overview">@L["Overview"]</button>
+            <button class="@(_tab == BeatmapsTab.Maps ? "on" : "")" @onclick="() => _tab = BeatmapsTab.Maps">@L["Maps"]</button>
         </div>
         <div class="actions push-right">
             @if (_tab == BeatmapsTab.Maps)
             {
-                <button class="btn small" @onclick="SaveConfig">Save selection…</button>
-                <button class="btn small" @onclick="LoadConfig">Load selection…</button>
+                <button class="btn small" @onclick="SaveConfig">@L["Save selection…"]</button>
+                <button class="btn small" @onclick="LoadConfig">@L["Load selection…"]</button>
             }
-            <button class="btn small" @onclick="() => _confirmRemove = true">Remove profile…</button>
+            <button class="btn small" @onclick="() => _confirmRemove = true">@L["Remove profile…"]</button>
         </div>
     </div>
 
     @if (_confirmRemove)
     {
         <div class="callout warn">
-            Remove <b>@_result.Username</b>? Its list is deleted; downloaded maps stay where they are.
+            @L.F("Remove {0}? Its list is deleted; downloaded maps stay where they are.", _result.Username)
             <div class="actions">
-                <button class="btn primary" @onclick="RemoveProfile">Remove</button>
-                <button class="btn" @onclick="() => _confirmRemove = false">Cancel</button>
+                <button class="btn primary" @onclick="RemoveProfile">@L["Remove"]</button>
+                <button class="btn" @onclick="() => _confirmRemove = false">@L["Cancel"]</button>
             </div>
         </div>
     }
@@ -52,11 +52,11 @@
 {
     @if (UserId is not null)
     {
-        <div class="callout warn">This profile has not been harvested yet, or was removed.</div>
+        <div class="callout warn">@L["This profile has not been harvested yet, or was removed."]</div>
     }
     else if (!Harvest.IsRunning)
     {
-        <p class="muted">Harvest a profile to see its beatmaps.</p>
+        <p class="muted">@L["Harvest a profile to see its beatmaps."]</p>
     }
 }
 else if (_tab == BeatmapsTab.Overview)
@@ -67,13 +67,13 @@ else if (_tab == BeatmapsTab.Overview)
 }
 else if (_owned is null)
 {
-    <div class="actions"><span class="spinner"></span> Checking which maps you already have…</div>
+    <div class="actions"><span class="spinner"></span> @L["Checking which maps you already have…"]</div>
 }
 else
 {
     <p class="muted">
-        @_mapsets.Count beatmapsets · @_inGameCount in osu! · @(_ownedCount - _inGameCount) downloaded.
-        @(Config.SelectionMode == SelectionMode.Filters ? "Click a map to add or remove it." : "Click the maps you want.")
+        @L.F("{0} beatmapsets · {1} in osu! · {2} downloaded.", _mapsets.Count, _inGameCount, _ownedCount - _inGameCount)
+        @L[Config.SelectionMode == SelectionMode.Filters ? "Click a map to add or remove it." : "Click the maps you want."]
     </p>
 
     @if (_message is not null)
@@ -84,22 +84,22 @@ else
     <section class="panel filters">
         <div class="filter-row">
             <div class="segmented">
-                <button class="@(Config.SelectionMode == SelectionMode.Filters ? "on" : "")" @onclick="() => SwitchMode(SelectionMode.Filters)">By filters</button>
-                <button class="@(Config.SelectionMode == SelectionMode.Custom ? "on" : "")" @onclick="() => SwitchMode(SelectionMode.Custom)">Hand-picked</button>
+                <button class="@(Config.SelectionMode == SelectionMode.Filters ? "on" : "")" @onclick="() => SwitchMode(SelectionMode.Filters)">@L["By filters"]</button>
+                <button class="@(Config.SelectionMode == SelectionMode.Custom ? "on" : "")" @onclick="() => SwitchMode(SelectionMode.Custom)">@L["Hand-picked"]</button>
             </div>
             @if (Config.SelectionMode == SelectionMode.Custom)
             {
-                <button class="btn small" @onclick="SelectShown">Select all shown</button>
-                <button class="btn small" disabled="@(Config.Included.Count == 0)" @onclick="ClearManual">Clear</button>
+                <button class="btn small" @onclick="SelectShown">@L["Select all shown"]</button>
+                <button class="btn small" disabled="@(Config.Included.Count == 0)" @onclick="ClearManual">@L["Clear"]</button>
             }
             else
             {
                 <button class="btn small" disabled="@(Config.Included.Count + Config.Excluded.Count == 0)" @onclick="ClearManual">
-                    Reset hand-picked changes (@(Config.Included.Count + Config.Excluded.Count))
+                    @L.F("Reset hand-picked changes ({0})", Config.Included.Count + Config.Excluded.Count)
                 </button>
             }
             <label class="inline-field">
-                Sort
+                @L["Sort"]
                 <select class="input small" @bind="Config.Sort" @bind:after="Refresh">
                     @foreach (var sort in MapsetSort.All)
                     {
@@ -110,7 +110,7 @@ else
         </div>
 
         <div class="filter-row">
-            <span class="filter-label">Mode</span>
+            <span class="filter-label">@L["Mode"]</span>
             <div class="chips">
                 @foreach (var mode in Ruleset.All)
                 {
@@ -119,36 +119,36 @@ else
                     </span>
                 }
             </div>
-            @if (Filters.Modes.Count == 0) { <small class="muted">all modes</small> }
+            @if (Filters.Modes.Count == 0) { <small class="muted">@L["all modes"]</small> }
         </div>
 
         <div class="grid-3">
             <div class="range-field">
-                <span class="filter-label">Stars <b>@StarsLabel()</b></span>
+                <span class="filter-label">@L["Stars"] <b>@StarsLabel()</b></span>
                 <div class="dual-range">
                     <input type="range" min="0" max="10" step="0.1" @bind="_starsLo" @bind:event="oninput" @bind:culture="CultureInfo.InvariantCulture" @bind:after="ApplyRanges" />
                     <input type="range" min="0" max="10" step="0.1" @bind="_starsHi" @bind:event="oninput" @bind:culture="CultureInfo.InvariantCulture" @bind:after="ApplyRanges" />
                 </div>
             </div>
             <div class="range-field">
-                <span class="filter-label">Length <b>@LengthLabel()</b></span>
+                <span class="filter-label">@L["Length"] <b>@LengthLabel()</b></span>
                 <div class="dual-range">
                     <input type="range" min="0" max="600" step="5" @bind="_lengthLo" @bind:event="oninput" @bind:culture="CultureInfo.InvariantCulture" @bind:after="ApplyRanges" />
                     <input type="range" min="0" max="600" step="5" @bind="_lengthHi" @bind:event="oninput" @bind:culture="CultureInfo.InvariantCulture" @bind:after="ApplyRanges" />
                 </div>
             </div>
             <div class="range-field">
-                <span class="filter-label">Your plays <small class="muted">(per difficulty)</small></span>
+                <span class="filter-label">@L["Plays"] <small class="muted">@L["(per difficulty)"]</small></span>
                 <div class="pair">
-                    <input class="input small" type="number" min="0" placeholder="min" @bind="_playsMin" @bind:after="ApplyRanges" />
+                    <input class="input small" type="number" min="0" placeholder="@L["min"]" @bind="_playsMin" @bind:after="ApplyRanges" />
                     <span class="muted">–</span>
-                    <input class="input small" type="number" min="0" placeholder="max" @bind="_playsMax" @bind:after="ApplyRanges" />
+                    <input class="input small" type="number" min="0" placeholder="@L["max"]" @bind="_playsMax" @bind:after="ApplyRanges" />
                 </div>
             </div>
         </div>
 
         <div class="filter-row">
-            <span class="filter-label">Status</span>
+            <span class="filter-label">@L["Status"]</span>
             <div class="chips">
                 @foreach (var status in _statuses)
                 {
@@ -158,7 +158,7 @@ else
         </div>
 
         <div class="filter-row">
-            <span class="filter-label">Found in</span>
+            <span class="filter-label">@L["Found in"]</span>
             <div class="chips">
                 @foreach (var source in Sources)
                 {
@@ -168,36 +168,36 @@ else
         </div>
 
         <div class="filter-row">
-            <span class="filter-label">Library</span>
+            <span class="filter-label">@L["Library"]</span>
             <div class="chips">
                 @foreach (var (state, label) in LibraryStates)
                 {
-                    <span class="chip @(Filters.Library.Contains(state) ? "on" : "")" @onclick="() => ToggleLibrary(state)">@label</span>
+                    <span class="chip @(Filters.Library.Contains(state) ? "on" : "")" @onclick="() => ToggleLibrary(state)">@L[label]</span>
                 }
             </div>
-            <small class="muted">@(Filters.Library.Count == 0 ? "any — \"Skip maps I already have\" decides" : "only these; \"Skip maps I already have\" is ignored")</small>
+            <small class="muted">@L[Filters.Library.Count == 0 ? "any — \"Skip maps I already have\" decides" : "only these; \"Skip maps I already have\" is ignored"]</small>
         </div>
 
         <div class="filter-row">
-            <input class="input search" placeholder="Search artist, title, mapper or difficulty"
+            <input class="input search" placeholder="@L["Search artist, title, mapper or difficulty"]"
                    @bind="Filters.Search" @bind:event="oninput" @bind:after="Refresh" />
             <label class="check-field">
-                <input type="checkbox" @bind="Filters.SkipOwned" @bind:after="Refresh" /> Skip maps I already have
+                <input type="checkbox" @bind="Filters.SkipOwned" @bind:after="Refresh" /> @L["Skip maps I already have"]
             </label>
             <label class="check-field">
-                <input type="checkbox" @bind="Filters.OnlySelected" @bind:after="Refresh" /> Show only selected
+                <input type="checkbox" @bind="Filters.OnlySelected" @bind:after="Refresh" /> @L["Show only selected"]
             </label>
-            <span class="inline-field" title="Maps and difficulties that don't pass the filters">
-                Outside the filters
+            <span class="inline-field" title="@L["Maps and difficulties that don't pass the filters"]">
+                @L["Outside the filters"]
                 <span class="segmented small">
-                    <button class="@(Filters.HideUnmatched ? "" : "on")" @onclick="() => SetHideUnmatched(false)">Dim</button>
-                    <button class="@(Filters.HideUnmatched ? "on" : "")" @onclick="() => SetHideUnmatched(true)">Hide</button>
+                    <button class="@(Filters.HideUnmatched ? "" : "on")" @onclick="() => SetHideUnmatched(false)">@L["Dim"]</button>
+                    <button class="@(Filters.HideUnmatched ? "on" : "")" @onclick="() => SetHideUnmatched(true)">@L["Hide"]</button>
                 </span>
             </span>
         </div>
     </section>
 
-    <div class="list-head muted">Showing @_visible.Count of @_mapsets.Count</div>
+    <div class="list-head muted">@L.F("Showing {0} of {1}", _visible.Count, _mapsets.Count)</div>
 
     <div class="map-list">
         <Virtualize Items="_visible" ItemSize="96" Context="m">
@@ -206,8 +206,8 @@ else
                 var selected = SelectionEngine.IsSelected(m, Config, ownership);
             }
             <div class="map-row" @key="m.Id">
-                <div class="map-card @(selected ? "selected" : "")" title="Click to @(selected ? "remove from" : "add to") the selection" @onclick="() => Toggle(m)">
-                    <div class="cover @(_playing == m.Id ? "playing" : "")" title="Play preview" @onclick="() => TogglePreview(m)" @onclick:stopPropagation>
+                <div class="map-card @(selected ? "selected" : "")" title="@L[selected ? "Click to remove from the selection" : "Click to add to the selection"]" @onclick="() => Toggle(m)">
+                    <div class="cover @(_playing == m.Id ? "playing" : "")" title="@L["Play preview"]" @onclick="() => TogglePreview(m)" @onclick:stopPropagation>
                         @if (m.Cover is not null)
                         {
                             @* Old maps may have no cover: hide the broken-image icon and keep the plain background. *@
@@ -219,22 +219,22 @@ else
                         }
                     </div>
                     <div class="map-body">
-                        <div class="map-title"><b>@m.Title</b> <span class="muted">by @m.Artist</span></div>
+                        <div class="map-title"><b>@m.Title</b> <span class="muted">@L.F("by {0}", m.Artist)</span></div>
                         <div class="map-meta">
                             <span class="tag status-@(m.Status ?? "unknown")">@Format.Status(m.Status)</span>
                             @if (ownership == MapOwnership.InGame)
                             {
-                                <span class="tag have" title="Already in osu!">In osu!</span>
+                                <span class="tag have" title="@L["Already in osu!"]">@L["In osu!"]</span>
                             }
                             else if (ownership == MapOwnership.Downloaded)
                             {
-                                <span class="tag downloaded-only" title="Downloaded by Beatmap Harvest, not in osu! yet">Downloaded</span>
+                                <span class="tag downloaded-only" title="@L["Downloaded by Beatmap Harvest, not in osu! yet"]">@L["Downloaded"]</span>
                             }
-                            <span>mapped by @m.Creator</span>
+                            <span>@L.F("mapped by {0}", m.Creator)</span>
                             <span>@Format.Length(m.LengthSeconds)</span>
                             @if (m.TotalPlays > 0)
                             {
-                                <span>@m.TotalPlays plays</span>
+                                <span>@L.F("{0} plays", m.TotalPlays)</span>
                             }
                         </div>
                         <div class="diffs">
@@ -248,7 +248,7 @@ else
                             }
                         </div>
                     </div>
-                    <button class="info-btn" title="Details" @onclick="() => ShowDetails(m)" @onclick:stopPropagation>i</button>
+                    <button class="info-btn" title="@L["Details"]" @onclick="() => ShowDetails(m)" @onclick:stopPropagation>i</button>
                     <div class="check">@(selected ? "✓" : "")</div>
                 </div>
             </div>
@@ -257,20 +257,20 @@ else
 
     <footer class="page-footer">
         <div class="footer-stats">
-            <span><b>@_selected.Count</b> @(_selected.Count == 1 ? "map" : "maps")</span>
-            <span><b>@_selectedDifficulties</b> difficulties</span>
-            <span><b>@Format.Duration(_selectedLength)</b> of music</span>
+            <span><b>@_selected.Count</b> @L[_selected.Count == 1 ? "map" : "maps"]</span>
+            <span><b>@_selectedDifficulties</b> @L["difficulties"]</span>
+            <span><b>@Format.Duration(_selectedLength)</b> @L["of music"]</span>
         </div>
         @if (Downloads.IsRunning)
         {
-            <a href="downloads">A download is running…</a>
+            <a href="downloads">@L["A download is running…"]</a>
         }
         @if (Library.Client == OsuClient.Stable)
         {
-            <button class="btn" disabled="@(_selected.Count == 0)" @onclick="() => _addToCollection = true">Add to collection…</button>
+            <button class="btn" disabled="@(_selected.Count == 0)" @onclick="() => _addToCollection = true">@L["Add to collection…"]</button>
         }
         <button class="btn primary" disabled="@(_selected.Count == 0 || Downloads.IsRunning)" @onclick="StartDownload">
-            Download @_selected.Count @(_selected.Count == 1 ? "map" : "maps")
+            @L.F(_selected.Count == 1 ? "Download {0} map" : "Download {0} maps", _selected.Count)
         </button>
     </footer>
 
@@ -502,11 +502,11 @@ else
     }
 
     private string StarsLabel() => Filters.Stars == NumericRange.Any
-        ? "any"
-        : $"{Filters.Stars.Min ?? 0:0.0}★ – {(Filters.Stars.Max is { } max ? $"{max:0.0}★" : "10★+")}";
+        ? L["any"]
+        : string.Create(L.Culture, $"{Filters.Stars.Min ?? 0:0.0}★ – {(Filters.Stars.Max is { } max ? string.Create(L.Culture, $"{max:0.0}★") : "10★+")}");
 
     private string LengthLabel() => Filters.Length == NumericRange.Any
-        ? "any"
+        ? L["any"]
         : $"{Format.Length(Filters.Length.Min ?? 0)} – {(Filters.Length.Max is { } max ? Format.Length(max) : "10:00+")}";
 
     private void TogglePreview(MapsetInfo m)
@@ -541,23 +541,23 @@ else
 
     private void SaveConfig()
     {
-        var path = FileDialogs.Save("Save selection", $"{_result?.Username ?? "beatmaps"}-selection.json", FileDialogs.JsonFilter);
+        var path = FileDialogs.Save(L["Save selection"], $"{_result?.Username ?? "beatmaps"}-selection.json", L["Selection (*.json)|*.json|All files (*.*)|*.*"]);
         if (path is null)
             return;
         try
         {
             AtomicFile.WriteJson(path, Config);
-            Show(true, $"Saved to {path}.");
+            Show(true, L.F("Saved to {0}.", path));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Show(false, $"Could not save: {ex.Message}");
+            Show(false, L.F("Could not save: {0}", ex.Message));
         }
     }
 
     private void LoadConfig()
     {
-        var path = FileDialogs.Open("Load selection", FileDialogs.JsonFilter);
+        var path = FileDialogs.Open(L["Load selection"], L["Selection (*.json)|*.json|All files (*.*)|*.*"]);
         if (path is null)
             return;
         try
@@ -565,18 +565,18 @@ else
             var loaded = JsonSerializer.Deserialize<SelectorConfig>(File.ReadAllText(path), JsonDefaults.Files);
             if (loaded is null || loaded.BeatmapHarvestSelector != 1)
             {
-                Show(false, "That file is not a Beatmap Harvest selection.");
+                Show(false, L["That file is not a Beatmap Harvest selection."]);
                 return;
             }
             State.Set(_result!.UserId, loaded);
             _config = loaded;
             SyncInputs();
             Refresh();
-            Show(true, $"Loaded {Path.GetFileName(path)}: {_selected.Count} maps selected.");
+            Show(true, L.F("Loaded {0}: {1} maps selected.", Path.GetFileName(path), _selected.Count));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
-            Show(false, $"Could not load: {ex.Message}");
+            Show(false, L.F("Could not load: {0}", ex.Message));
         }
     }
 
@@ -614,11 +614,11 @@ else
         Nav.NavigateTo("beatmaps");
     }
 
-    private static string DiffTitle(DifficultyInfo d) =>
+    private string DiffTitle(DifficultyInfo d) =>
         $"{d.Version} · {Format.Mode(d.Mode)} · {Format.Stars(d.Stars)}★ · {Format.Length(d.LengthSeconds)}"
-        + (d.Plays is > 0 ? $" · {d.Plays} plays" : "");
+        + (d.Plays is > 0 ? " · " + L.F("{0} plays", d.Plays) : "");
 
-    private static string SortLabel(string sort) => sort switch
+    private string SortLabel(string sort) => L[sort switch
     {
         MapsetSort.Plays => "Most played",
         MapsetSort.Artist => "Artist",
@@ -627,9 +627,9 @@ else
         MapsetSort.Length => "Longest",
         MapsetSort.Mapper => "Mapper",
         _ => sort,
-    };
+    }];
 
-    private static string SourceLabel(string source) => source switch
+    private string SourceLabel(string source) => L[source switch
     {
         HarvestSource.Best => "best scores",
         HarvestSource.Firsts => "first places",
@@ -637,7 +637,7 @@ else
         HarvestSource.Recent => "recent",
         HarvestSource.MostPlayed => "most played",
         _ => source,
-    };
+    }];
 
     public void Dispose()
     {

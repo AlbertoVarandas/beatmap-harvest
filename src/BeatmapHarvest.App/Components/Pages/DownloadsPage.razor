@@ -5,16 +5,16 @@
 
 <div class="downloads-page">
 <div class="panel-head">
-    <h1>Downloads</h1>
-    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(Session.Destination ?? Session.DownloadsDirectory)">Open folder</button>
+    <h1>@L["Downloads"]</h1>
+    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(Session.Destination ?? Session.DownloadsDirectory)">@L["Open folder"]</button>
 </div>
 <p class="muted">
-    Downloads the maps you selected. Maps you already have are skipped, and a stopped download continues where it left off.
+    @L["Downloads the maps you selected. Maps you already have are skipped, and a stopped download continues where it left off."]
 </p>
 
 @if (Session.Items.Length == 0)
 {
-    <div class="callout warn">Nothing queued. <a href="beatmaps">Pick maps to download</a> first.</div>
+    <div class="callout warn">@L["Nothing queued."] <a href="beatmaps">@L["Pick maps to download"]</a></div>
 }
 else
 {
@@ -25,25 +25,25 @@ else
 
     <section class="panel">
         <div class="panel-head">
-            <h2>@(Session.IsRunning ? "Downloading" : "Finished") <small class="muted">@Session.Completed / @total</small></h2>
+            <h2>@L[Session.IsRunning ? "Downloading" : "Finished"] <small class="muted">@Session.Completed / @total</small></h2>
             <div class="actions">
                 @if (Session.IsRunning)
                 {
                     <span class="spinner"></span>
-                    <button class="btn" @onclick="Session.Cancel">Cancel</button>
+                    <button class="btn" @onclick="Session.Cancel">@L["Cancel"]</button>
                 }
                 else if (failed > 0)
                 {
-                    <button class="btn" @onclick="Session.RetryFailed">Retry @failed failed</button>
+                    <button class="btn" @onclick="Session.RetryFailed">@L.F("Retry {0} failed", failed)</button>
                 }
             </div>
         </div>
         <div class="progress"><div style="width:@Percent(Session.Completed, total)"></div></div>
         <div class="stats">
-            <div class="stat"><b>@downloaded</b><span>downloaded</span></div>
-            <div class="stat"><b>@skipped</b><span>already had</span></div>
-            <div class="stat"><b class="@(failed > 0 ? "error-text" : "")">@failed</b><span>failed</span></div>
-            <div class="stat"><b>@(total - Session.Completed)</b><span>remaining</span></div>
+            <div class="stat"><b>@downloaded</b><span>@L["downloaded"]</span></div>
+            <div class="stat"><b>@skipped</b><span>@L["already had"]</span></div>
+            <div class="stat"><b class="@(failed > 0 ? "error-text" : "")">@failed</b><span>@L["failed"]</span></div>
+            <div class="stat"><b>@(total - Session.Completed)</b><span>@L["remaining"]</span></div>
         </div>
         @if (Session.Error is not null)
         {
@@ -54,7 +54,7 @@ else
     @if (failed > 0)
     {
         <section class="panel">
-            <h2>Failures</h2>
+            <h2>@L["Failures"]</h2>
             <table class="table">
                 <tbody>
                     @foreach (var item in Session.Items.Where(i => i.State == DownloadItemState.Failed))
@@ -63,7 +63,7 @@ else
                             <td class="num"><a href="" @onclick="() => OpenSet(item.SetId)" @onclick:preventDefault>@item.SetId</a></td>
                             <td>@item.Artist – @item.Title</td>
                             <td class="errors">
-                                @foreach (var error in (item.Detail ?? "no mirror is enabled").Split("; "))
+                                @foreach (var error in (item.Detail ?? L["no mirror is enabled"]).Split("; "))
                                 {
                                     <div>@error</div>
                                 }
@@ -76,15 +76,15 @@ else
     }
 
     <section class="panel">
-        <h2>Mirrors</h2>
+        <h2>@L["Mirrors"]</h2>
         @if (Session.MirrorStats.Count == 0)
         {
-            <p class="muted">No mirror has been tried yet.</p>
+            <p class="muted">@L["No mirror has been tried yet."]</p>
         }
         else
         {
             <table class="table">
-                <thead><tr><th>Mirror</th><th class="num">OK</th><th class="num">Failed</th><th class="num">In a row</th><th></th></tr></thead>
+                <thead><tr><th>@L["Mirror"]</th><th class="num">OK</th><th class="num">@L["Failed"]</th><th class="num">@L["In a row"]</th><th></th></tr></thead>
                 <tbody>
                     @foreach (var (name, stats) in Session.MirrorStats.OrderBy(s => s.Key, StringComparer.Ordinal))
                     {
@@ -96,7 +96,7 @@ else
                             <td>
                                 @if (stats.ConsecutiveFailures >= Session.DisableMirrorAfter)
                                 {
-                                    <span class="tag failed">skipped until restart</span>
+                                    <span class="tag failed">@L["skipped until restart"]</span>
                                 }
                             </td>
                         </tr>
@@ -107,7 +107,7 @@ else
     </section>
 
     <section class="panel">
-        <h2>Queue</h2>
+        <h2>@L["Queue"]</h2>
         <div class="dl-list">
             <Virtualize Items="Session.Items" ItemSize="34" Context="item">
                 <div class="dl-row">
@@ -123,32 +123,33 @@ else
 @if (Library.Client == OsuClient.Lazer)
 {
     <section class="panel">
-        <h2>Add to osu!lazer</h2>
-        <p class="muted">Open the downloads folder, select the maps and drag them onto the osu!lazer window (or double-click them).</p>
-        <button class="btn" @onclick="() => ShellLauncher.OpenFolder(Session.DownloadsDirectory)">Open downloads folder</button>
+        <h2>@L["Add to osu!lazer"]</h2>
+        <p class="muted">@L["Open the downloads folder, select the maps and drag them onto the osu!lazer window (or double-click them)."]</p>
+        <button class="btn" @onclick="() => ShellLauncher.OpenFolder(Session.DownloadsDirectory)">@L["Open downloads folder"]</button>
     </section>
 }
 else
 {
 <section class="panel">
-    <h2>Move downloads</h2>
+    <h2>@L["Move downloads"]</h2>
     <p class="muted">
-        Moves the downloaded maps into osu!, which adds them the next time it starts. The destination can be changed in <a href="settings">Settings</a>.
+        @L["Moves the downloaded maps into osu!, which adds them the next time it starts."]
+        <a href="settings">@L["The destination can be changed in Settings."]</a>
     </p>
     @if (_confirmMove)
     {
         <div class="callout warn">
-            Move every .osz from <code>@Session.DownloadsDirectory</code> to <code>@Session.MoveToDirectory</code>?
+            @L["Move every .osz from"] <code>@Session.DownloadsDirectory</code> @L["to"] <code>@Session.MoveToDirectory</code>?
             <div class="actions">
-                <button class="btn primary" disabled="@_moving" @onclick="MoveAsync">Move</button>
-                <button class="btn" disabled="@_moving" @onclick="() => _confirmMove = false">Cancel</button>
+                <button class="btn primary" disabled="@_moving" @onclick="MoveAsync">@L["Move"]</button>
+                <button class="btn" disabled="@_moving" @onclick="() => _confirmMove = false">@L["Cancel"]</button>
                 @if (_moving) { <span class="spinner"></span> }
             </div>
         </div>
     }
     else
     {
-        <button class="btn" disabled="@Session.IsRunning" @onclick="() => { _confirmMove = true; _moveMessage = null; }">Move downloads…</button>
+        <button class="btn" disabled="@Session.IsRunning" @onclick="() => { _confirmMove = true; _moveMessage = null; }">@L["Move downloads…"]</button>
     }
     @if (_moveMessage is not null)
     {
@@ -174,13 +175,14 @@ else
             var result = await Session.MoveToSongsAsync();
             _moveOk = true;
             _moveMessage = result.Moved == 0 && result.AlreadyThere == 0
-                ? "There were no .osz files to move."
-                : $"Moved {result.Moved} {(result.Moved == 1 ? "map" : "maps")}." + (result.AlreadyThere > 0 ? $" {result.AlreadyThere} were already there and were left in the downloads folder." : "");
+                ? L["There were no .osz files to move."]
+                : L.F(result.Moved == 1 ? "Moved {0} map." : "Moved {0} maps.", result.Moved)
+                  + (result.AlreadyThere > 0 ? " " + L.F("{0} were already there and were left in the downloads folder.", result.AlreadyThere) : "");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             _moveOk = false;
-            _moveMessage = $"Could not move the files: {ex.Message}";
+            _moveMessage = L.F("Could not move the files: {0}", ex.Message);
         }
         finally
         {
@@ -203,14 +205,14 @@ else
         _ => "queued",
     };
 
-    private static string StateLabel(DownloadItemState state) => state switch
+    private string StateLabel(DownloadItemState state) => L[state switch
     {
         DownloadItemState.Queued => "queued",
         DownloadItemState.Downloaded => "done",
         DownloadItemState.Skipped => "had it",
         DownloadItemState.Failed => "failed",
         _ => state.ToString(),
-    };
+    }];
 
     private void OnSessionChanged() => _ = InvokeAsync(StateHasChanged);
 

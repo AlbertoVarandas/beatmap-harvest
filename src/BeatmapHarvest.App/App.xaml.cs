@@ -19,6 +19,8 @@ public partial class App : Application
             Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", Path.Combine(AppPaths.Default.Root, "WebView2"));
 
         _services = new ServiceCollection().AddBeatmapHarvest().BuildServiceProvider();
+        // Dates and numbers follow the chosen interface language from the start.
+        _services.GetRequiredService<Localizer>().ApplyCulture();
         // MainWindow's BlazorWebView binds to this resource.
         Resources.Add("services", _services);
 

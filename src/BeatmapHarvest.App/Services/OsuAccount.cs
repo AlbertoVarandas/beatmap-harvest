@@ -17,7 +17,8 @@ public sealed class OsuAccount(
     ICredentialStore credentials,
     OsuApiOptions options,
     TimeProvider time,
-    AppPaths paths) : IDisposable
+    AppPaths paths,
+    Localizer l) : IDisposable
 {
     private const string Purpose = "account";
     private static readonly TimeSpan SignInTimeout = TimeSpan.FromMinutes(5);
@@ -66,7 +67,8 @@ public sealed class OsuAccount(
             }
             catch (System.Net.HttpListenerException ex)
             {
-                throw new OsuApiException($"Could not listen on {RedirectUri} ({ex.Message}). Close other apps using port {LoopbackCallbackListener.DefaultPort} and try again.");
+                throw new OsuApiException(l.F("Could not listen on {0} ({1}). Close other apps using port {2} and try again.",
+                    RedirectUri, ex.Message, LoopbackCallbackListener.DefaultPort));
             }
 
             using (listener)
@@ -88,7 +90,7 @@ public sealed class OsuAccount(
                 {
                     throw new OsuApiException(error == "access_denied"
                         ? "You declined the authorization on osu!."
-                        : $"osu! returned an error: {error}. Check that {RedirectUri} is in your OAuth application's callback URLs.");
+                        : l.F("osu! returned an error: {0}. Check that {1} is in your OAuth application's callback URLs.", error, RedirectUri));
                 }
                 if (!query.TryGetValue("state", out var returned) || returned != state || !query.TryGetValue("code", out var code))
                     throw new OsuApiException("The sign-in reply was not valid. Try again.");

@@ -2,9 +2,9 @@
 @inject CollectionsService Collections
 
 <div class="modal-backdrop" @onclick="CloseAsync">
-    <div class="modal small-modal" role="dialog" aria-label="Add to collection" @onclick:stopPropagation>
+    <div class="modal small-modal" role="dialog" aria-label="@L["Add to collection"]" @onclick:stopPropagation>
         <div class="modal-body">
-            <h2>Add @Mapsets.Count @(Mapsets.Count == 1 ? "map" : "maps") to a collection</h2>
+            <h2>@L.F(Mapsets.Count == 1 ? "Add {0} map to a collection" : "Add {0} maps to a collection", Mapsets.Count)</h2>
 
             @if (_db is null)
             {
@@ -13,25 +13,25 @@
             else
             {
                 <label class="field">
-                    <span>Collection</span>
+                    <span>@L["Collection"]</span>
                     <select class="input" @bind="_target" disabled="@_busy">
                         @foreach (var collection in _db.Collections)
                         {
                             <option value="@collection.Name">@collection.Name (@collection.Hashes.Count)</option>
                         }
-                        <option value="@NewOption">New collection…</option>
+                        <option value="@NewOption">@L["New collection…"]</option>
                     </select>
                 </label>
                 @if (_target == NewOption)
                 {
                     <label class="field">
-                        <span>Name</span>
+                        <span>@L["Name"]</span>
                         <input class="input" @bind="_newName" @bind:event="oninput" disabled="@_busy" />
                     </label>
                 }
                 <label class="check-field">
                     <input type="checkbox" @bind="_includeMissing" disabled="@_busy" />
-                    Also add maps not in osu! yet (looks each one up on osu!, about one per second)
+                    @L["Also add maps not in osu! yet (looks each one up on osu!, about one per second)"]
                 </label>
 
                 @if (_busy)
@@ -49,13 +49,13 @@
                 <div class="actions">
                     @if (_finished)
                     {
-                        <a class="btn primary" href="collections">Open Collections</a>
-                        <button class="btn" @onclick="CloseAsync">Close</button>
+                        <a class="btn primary" href="collections">@L["Open Collections"]</a>
+                        <button class="btn" @onclick="CloseAsync">@L["Close"]</button>
                     }
                     else
                     {
-                        <button class="btn primary" disabled="@(_busy || TargetName().Length == 0)" @onclick="AddAsync">Add</button>
-                        <button class="btn" @onclick="CloseAsync">@(_busy ? "Stop" : "Cancel")</button>
+                        <button class="btn primary" disabled="@(_busy || TargetName().Length == 0)" @onclick="AddAsync">@L["Add"]</button>
+                        <button class="btn" @onclick="CloseAsync">@L[_busy ? "Stop" : "Cancel"]</button>
                     }
                 </div>
             }
@@ -89,7 +89,7 @@
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
         {
-            _message = $"Could not read collection.db: {ex.Message}";
+            _message = L.F("Could not read collection.db: {0}", ex.Message);
         }
         if (_db is { Collections.Count: > 0 })
             _target = _db.Collections[0].Name;
@@ -112,14 +112,16 @@
             var result = await Collections.AddAsync(TargetName(), Mapsets, _includeMissing, progress, _cts.Token);
             _ok = true;
             _finished = true;
-            _message = $"Added {result.Added} difficulties to \"{TargetName()}\"."
-                       + (result.NotFound > 0 ? $" {result.NotFound} maps were skipped ({(_includeMissing ? "not found on osu!" : "not in osu! yet")})." : "")
-                       + " Save on the Collections page to write it to osu!.";
+            _message = L.F("Added {0} difficulties to \"{1}\".", result.Added, TargetName())
+                       + (result.NotFound > 0
+                           ? " " + L.F(_includeMissing ? "{0} maps were skipped (not found on osu!)." : "{0} maps were skipped (not in osu! yet).", result.NotFound)
+                           : "")
+                       + " " + L["Save on the Collections page to write it to osu!."];
         }
         catch (OperationCanceledException)
         {
             _ok = false;
-            _message = "Stopped. Nothing was added.";
+            _message = L["Stopped. Nothing was added."];
         }
         finally
         {

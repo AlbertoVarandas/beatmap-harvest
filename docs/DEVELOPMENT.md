@@ -70,6 +70,7 @@ Design rules:
 - **Package versions are central** in `Directory.Packages.props`. Shared build settings live in `Directory.Build.props`, and warnings are treated as errors.
 - **osu!'s files are read from copies and written only on request.** `osu!.db` is read into memory, so osu! can stay open. `collection.db` is written only by "Save to osu!", which refuses while osu! runs and keeps a timestamped backup.
 - **Large lists are virtualized.** The Beatmaps list (`<Virtualize>`) keeps about 16 cards in the DOM. Measured with a synthetic profile of 8000 beatmapsets / 24000 difficulties: the page opens in ~0.1 s, filters and search apply in 20–35 ms, and scrolling stays smooth.
+- **Text goes through the localizer.** UI text is written in English and wrapped in `L["…"]`, `L.F("…", args)` or `L.Html("…")`; `Services/Translations.cs` maps each English text to Portuguese (Portugal). A missing entry shows the English text. Format numbers and dates with `L.Culture` / `Localizer.ActiveCulture`, not `CultureInfo.CurrentCulture` (it flows with async calls and misses some renders). Core progress messages are templates (`HarvestProgress.Template` + `Args`) so the UI can translate them.
 - **The UI is embedded.** `wwwroot` and Blazor's `blazor.webview.js` are embedded resources served by `EmbeddedBlazorWebView`, so the single-file `.exe` works on its own. New static files must go under `wwwroot`.
 
 ### Data flow

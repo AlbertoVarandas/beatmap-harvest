@@ -1,8 +1,8 @@
 @page "/skins"
 @inject OsuLibrary Library
 
-<h1>Skins</h1>
-<p class="muted">The skins installed in osu!.</p>
+<h1>@L["Skins"]</h1>
+<p class="muted">@L["The skins installed in osu!."]</p>
 
 @if (_install is null)
 {
@@ -10,13 +10,13 @@
 }
 else if (_skins.Count == 0)
 {
-    <p class="muted">No skins installed.</p>
+    <p class="muted">@L["No skins installed."]</p>
 }
 else
 {
     <div class="actions">
-        <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(_install.SkinsDirectory)">Open Skins folder</button>
-        <span class="muted">@_skins.Count skins</span>
+        <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(_install.SkinsDirectory)">@L["Open Skins folder"]</button>
+        <span class="muted">@L.F("{0} skins", _skins.Count)</span>
     </div>
     <div class="skins">
         @foreach (var skin in _skins)
@@ -25,18 +25,18 @@ else
             <section class="panel skin @(current ? "current" : "")">
                 <div class="panel-head">
                     <div>
-                        <h2>@skin.Name @if (current) { <span class="tag have">current</span> }</h2>
+                        <h2>@skin.Name @if (current) { <span class="tag have">@L["current"]</span> }</h2>
                         <div class="muted small-text">
-                            @(skin.Author is null ? "unknown author" : $"by {skin.Author}")
-                            @if (skin.Version is not null) { <span> · skin version @skin.Version</span> }
-                            · @skin.Files files
+                            @(skin.Author is null ? L["unknown author"] : L.F("by {0}", skin.Author))
+                            @if (skin.Version is not null) { <span> · @L.F("skin version {0}", skin.Version)</span> }
+                            · @L.F("{0} files", skin.Files)
                         </div>
                     </div>
-                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(Path.Combine(_install.SkinsDirectory, skin.Folder))">Open folder</button>
+                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(Path.Combine(_install.SkinsDirectory, skin.Folder))">@L["Open folder"]</button>
                 </div>
                 @if (skin.Previews.Count == 0)
                 {
-                    <p class="muted">No preview images (this skin uses osu!'s defaults for these elements).</p>
+                    <p class="muted">@L["No preview images (this skin uses osu!'s defaults for these elements)."]</p>
                 }
                 else
                 {
@@ -45,7 +45,7 @@ else
                         {
                             <figure>
                                 <div class="skin-img"><img src="@OsuFilesHost.Url(Path.Combine("Skins", element.RelativePath))" alt="@element.Label" loading="lazy" onerror="this.style.visibility='hidden'" /></div>
-                                <figcaption>@element.Label</figcaption>
+                                <figcaption>@L[element.Label]</figcaption>
                             </figure>
                         }
                     </div>

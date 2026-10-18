@@ -4,17 +4,17 @@
 @inject OsuLibrary Library
 
 <div class="panel-head">
-    <h1>Collections</h1>
+    <h1>@L["Collections"]</h1>
     @if (_db is not null)
     {
         <div class="actions">
-            <button class="btn" disabled="@(!Collections.IsDirty)" @onclick="Discard">Discard changes</button>
-            <button class="btn primary" disabled="@(!Collections.IsDirty)" @onclick="Save">Save to osu!</button>
+            <button class="btn" disabled="@(!Collections.IsDirty)" @onclick="Discard">@L["Discard changes"]</button>
+            <button class="btn primary" disabled="@(!Collections.IsDirty)" @onclick="Save">@L["Save to osu!"]</button>
         </div>
     }
 </div>
 <p class="muted">
-    Your osu! collections. Changes only reach osu! when you click <b>Save to osu!</b> (with osu! closed).
+    @L.Html("Your osu! collections. Changes only reach osu! when you click <b>Save to osu!</b> (with osu! closed).")
 </p>
 
 @if (_error is not null)
@@ -37,19 +37,19 @@ else
 {
     @if (Collections.IsDirty && CollectionsService.IsOsuRunning())
     {
-        <div class="callout warn">osu! is running. Close it before saving, or it will overwrite your changes when it exits.</div>
+        <div class="callout warn">@L["osu! is running. Close it before saving, or it will overwrite your changes when it exits."]</div>
     }
 
     <section class="panel">
         <div class="folder-field">
-            <input class="input" placeholder="New collection name" @bind="_newName" @bind:event="oninput" @onkeydown="OnNewKey" />
-            <button class="btn" disabled="@string.IsNullOrWhiteSpace(_newName)" @onclick="CreateNew">Create</button>
+            <input class="input" placeholder="@L["New collection name"]" @bind="_newName" @bind:event="oninput" @onkeydown="OnNewKey" />
+            <button class="btn" disabled="@string.IsNullOrWhiteSpace(_newName)" @onclick="CreateNew">@L["Create"]</button>
         </div>
     </section>
 
     @if (_db.Collections.Count == 0)
     {
-        <p class="muted">No collections yet.</p>
+        <p class="muted">@L["No collections yet."]</p>
     }
 
     @foreach (var collection in _db.Collections)
@@ -69,18 +69,18 @@ else
                 {
                     <h2 class="clickable-title" @onclick="() => ToggleOpen(collection)">
                         @(open ? "▾" : "▸") @collection.Name
-                        <small class="muted">@collection.Hashes.Count difficulties · @installed in osu!</small>
+                        <small class="muted">@L.F("{0} difficulties · {1} in osu!", collection.Hashes.Count, installed)</small>
                     </h2>
                     <div class="actions">
-                        <button class="btn small" @onclick="() => StartRename(collection)">Rename</button>
+                        <button class="btn small" @onclick="() => StartRename(collection)">@L["Rename"]</button>
                         @if (_confirmDelete == collection)
                         {
-                            <button class="btn small primary" @onclick="() => Delete(collection)">Delete</button>
-                            <button class="btn small" @onclick="() => _confirmDelete = null">Cancel</button>
+                            <button class="btn small primary" @onclick="() => Delete(collection)">@L["Delete"]</button>
+                            <button class="btn small" @onclick="() => _confirmDelete = null">@L["Cancel"]</button>
                         }
                         else
                         {
-                            <button class="btn small" @onclick="() => _confirmDelete = collection">Delete…</button>
+                            <button class="btn small" @onclick="() => _confirmDelete = collection">@L["Delete…"]</button>
                         }
                     </div>
                 }
@@ -93,15 +93,15 @@ else
                         <div class="dl-row">
                             @if (_local.TryGetValue(hash, out var map))
                             {
-                                <span class="tag have">in osu!</span>
+                                <span class="tag have">@L["in osu!"]</span>
                                 <span class="dl-name">@map.Artist – @map.Title <span class="muted">[@map.Version]</span></span>
                             }
                             else
                             {
-                                <span class="tag">not in osu!</span>
-                                <span class="dl-name muted">Difficulty @hash[..Math.Min(8, hash.Length)]… (shows up once the map is in osu!)</span>
+                                <span class="tag">@L["not in osu!"]</span>
+                                <span class="dl-name muted">@L.F("Difficulty {0}… (shows up once the map is in osu!)", hash[..Math.Min(8, hash.Length)])</span>
                             }
-                            <button class="btn small" @onclick="() => Collections.Remove(collection, hash)">Remove</button>
+                            <button class="btn small" @onclick="() => Collections.Remove(collection, hash)">@L["Remove"]</button>
                         </div>
                     }
                 </div>
@@ -130,7 +130,7 @@ else
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
         {
-            _error = $"Could not read collection.db: {ex.Message}";
+            _error = L.F("Could not read collection.db: {0}", ex.Message);
         }
         var snapshot = await Library.GetAsync();
         foreach (var map in snapshot.Database?.Beatmaps ?? [])
@@ -191,11 +191,13 @@ else
         try
         {
             var backup = Collections.Save();
-            _message = backup is null ? "Saved to osu!." : $"Saved to osu!. The previous file was kept as {Path.GetFileName(backup)}.";
+            _message = backup is null
+                ? L["Saved to osu!."]
+                : L.F("Saved to osu!. The previous file was kept as {0}.", Path.GetFileName(backup));
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
-            _error = ex.Message;
+            _error = L[ex.Message];
         }
     }
 
@@ -204,7 +206,7 @@ else
         Collections.Discard();
         _db = Collections.Get();
         _open.Clear();
-        _message = "Changes discarded.";
+        _message = L["Changes discarded."];
     }
 
     private void OnChanged() => _ = InvokeAsync(StateHasChanged);

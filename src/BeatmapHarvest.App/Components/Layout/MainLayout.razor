@@ -9,7 +9,7 @@
     <nav class="sidebar">
         <div class="brand">beatmap<span>harvest</span></div>
 
-        <NavEntry Href="beatmaps" Text="Beatmaps" Match="NavLinkMatch.All" Enabled="Setup.HasCredentials" DisabledHint="@NeedsCredentials" />
+        <NavEntry Href="beatmaps" Text="@L["Beatmaps"]" Match="NavLinkMatch.All" Enabled="Setup.HasCredentials" DisabledHint="@L[NeedsCredentials]" />
         @if (Setup.HasCredentials && _profiles.Count > 0)
         {
             @* One entry per harvested profile; the signed-in user's own profile comes first, in bold. *@
@@ -24,16 +24,17 @@
                 }
             </div>
         }
-        <NavEntry Href="friends" Text="My friends" Enabled="@(Setup.HasCredentials && Account.User is not null)"
-                  DisabledHint="@(Setup.HasCredentials ? "Sign in with your osu! account in Settings" : NeedsCredentials)" />
-        <NavEntry Href="downloads" Text="Downloads" Enabled="Setup.HasCredentials" DisabledHint="@NeedsCredentials" />
-        <NavEntry Href="library" Text="osu! library" Enabled="Setup.HasCredentials" DisabledHint="@NeedsCredentials" />
-        <NavEntry Href="collections" Text="Collections" Enabled="Setup.HasCredentials" DisabledHint="@NeedsCredentials" />
-        <NavEntry Href="skins" Text="Skins" Enabled="Setup.HasCredentials" DisabledHint="@NeedsCredentials" />
-        <NavEntry Href="settings" Text="Settings" />
+        <NavEntry Href="friends" Text="@L["My friends"]" Enabled="@(Setup.HasCredentials && Account.User is not null)"
+                  DisabledHint="@L[Setup.HasCredentials ? "Sign in with your osu! account in Settings" : NeedsCredentials]" />
+        <NavEntry Href="downloads" Text="@L["Downloads"]" Enabled="Setup.HasCredentials" DisabledHint="@L[NeedsCredentials]" />
+        <NavEntry Href="library" Text="@L["osu! library"]" Enabled="Setup.HasCredentials" DisabledHint="@L[NeedsCredentials]" />
+        <NavEntry Href="collections" Text="@L["Collections"]" Enabled="Setup.HasCredentials" DisabledHint="@L[NeedsCredentials]" />
+        <NavEntry Href="skins" Text="@L["Skins"]" Enabled="Setup.HasCredentials" DisabledHint="@L[NeedsCredentials]" />
+        <NavEntry Href="settings" Text="@L["Settings"]" />
     </nav>
     <main class="content">
-        <div class="page">
+        @* Re-created when the language changes, so the page renders again in the new language. *@
+        <div class="page" @key="L.Language">
             @Body
         </div>
     </main>
@@ -47,6 +48,7 @@
     protected override void OnInitialized()
     {
         Refresh();
+        L.Changed += OnChanged;
         Profiles.Changed += OnChanged;
         Setup.Changed += OnChanged;
         Account.Changed += OnChanged;
@@ -87,11 +89,12 @@
     private static string ProfileHref(ProfileEntry profile) =>
         string.Create(CultureInfo.InvariantCulture, $"beatmaps/{profile.UserId}");
 
-    private static string ProfileTitle(ProfileEntry profile) =>
-        $"{profile.Username} · {profile.Mapsets} beatmapsets · harvested {profile.HarvestedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)}";
+    private string ProfileTitle(ProfileEntry profile) =>
+        L.F("{0} · {1} beatmapsets · harvested {2:g}", profile.Username, profile.Mapsets, profile.HarvestedAt.ToLocalTime());
 
     public void Dispose()
     {
+        L.Changed -= OnChanged;
         Profiles.Changed -= OnChanged;
         Setup.Changed -= OnChanged;
         Account.Changed -= OnChanged;

@@ -6,14 +6,14 @@
 @inject NavigationManager Nav
 
 <div class="panel-head">
-    <h1>osu! library</h1>
-    <button class="btn small" disabled="@(_snapshot is null)" @onclick="Library.Reload">Reload</button>
+    <h1>@L["osu! library"]</h1>
+    <button class="btn small" disabled="@(_snapshot is null)" @onclick="Library.Reload">@L["Reload"]</button>
 </div>
-<p class="muted">The maps you already have in osu!, compared with the profiles you harvested.</p>
+<p class="muted">@L["The maps you already have in osu!, compared with the profiles you harvested."]</p>
 
 @if (_snapshot is null)
 {
-    <div class="actions"><span class="spinner"></span> Reading your osu! library…</div>
+    <div class="actions"><span class="spinner"></span> @L["Reading your osu! library…"]</div>
 }
 else
 {
@@ -30,27 +30,27 @@ else
         <h2>@Format.Client(_snapshot.Client)</h2>
         @if (_snapshot.Client is null)
         {
-            <div class="callout warn">osu! was not found on this PC. <a href="settings">Set its folder in Settings</a>.</div>
+            <div class="callout warn">@L["osu! was not found on this PC."] <a href="settings">@L["Set its folder in Settings"]</a>.</div>
         }
         else
         {
             <div class="detail-grid">
-                <div><span>Beatmapsets</span><b>@_sets.Count</b></div>
-                <div><span>Difficulties</span><b>@_snapshot.Maps.Count</b></div>
+                <div><span>@L["Beatmapsets"]</span><b>@_sets.Count</b></div>
+                <div><span>@L["Difficulties"]</span><b>@_snapshot.Maps.Count</b></div>
                 @if (!string.IsNullOrEmpty(db?.PlayerName))
                 {
-                    <div><span>Player</span><b>@db.PlayerName</b></div>
+                    <div><span>@L["Player"]</span><b>@db.PlayerName</b></div>
                 }
             </div>
             <div class="actions">
                 @if (_snapshot.Client == OsuClient.Lazer)
                 {
-                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(clients.Lazer!.DataDirectory)">Open osu!lazer folder</button>
+                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(clients.Lazer!.DataDirectory)">@L["Open osu!lazer folder"]</button>
                 }
                 else
                 {
-                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(clients.Stable!.Root)">Open osu! folder</button>
-                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(_snapshot.SongsDirectory)">Open Songs folder</button>
+                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(clients.Stable!.Root)">@L["Open osu! folder"]</button>
+                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(_snapshot.SongsDirectory)">@L["Open Songs folder"]</button>
                 }
             </div>
         }
@@ -59,10 +59,10 @@ else
     @if (_profiles.Count > 0)
     {
         <section class="panel">
-            <h2>Your harvests compared</h2>
+            <h2>@L["Your harvests compared"]</h2>
             <table class="table">
                 <thead>
-                    <tr><th>Profile</th><th class="num">Beatmapsets</th><th class="num">In osu!</th><th class="num">Downloaded only</th><th class="num">Missing</th><th></th></tr>
+                    <tr><th>@L["Profile"]</th><th class="num">@L["Beatmapsets"]</th><th class="num">@L["In osu!"]</th><th class="num">@L["Downloaded only"]</th><th class="num">@L["Missing"]</th><th></th></tr>
                 </thead>
                 <tbody>
                     @foreach (var row in _profiles)
@@ -73,7 +73,7 @@ else
                             <td class="num">@row.InGame</td>
                             <td class="num">@row.Downloaded</td>
                             <td class="num"><b>@row.Missing</b></td>
-                            <td class="num"><button class="btn small" disabled="@(row.Missing == 0)" @onclick="() => ShowMissing(row.UserId)">Show missing</button></td>
+                            <td class="num"><button class="btn small" disabled="@(row.Missing == 0)" @onclick="() => ShowMissing(row.UserId)">@L["Show missing"]</button></td>
                         </tr>
                     }
                 </tbody>
@@ -85,8 +85,8 @@ else
     {
         <section class="panel">
             <div class="panel-head">
-                <h2>Installed beatmapsets <small class="muted">@Shown().Count() of @_sets.Count</small></h2>
-                <input class="input small" placeholder="Search" @bind="_search" @bind:event="oninput" />
+                <h2>@L["Installed beatmapsets"] <small class="muted">@L.F("{0} of {1}", Shown().Count(), _sets.Count)</small></h2>
+                <input class="input small" placeholder="@L["Search"]" @bind="_search" @bind:event="oninput" />
             </div>
             <div class="local-list">
                 <Virtualize Items="Shown().ToList()" ItemSize="58" Context="set">
@@ -100,23 +100,23 @@ else
                             }
                         </div>
                         <div class="local-text">
-                            <div class="map-title"><b>@set.Title</b> <span class="muted">by @set.Artist</span></div>
+                            <div class="map-title"><b>@set.Title</b> <span class="muted">@L.F("by {0}", set.Artist)</span></div>
                             <div class="map-meta">
-                                <span>mapped by @set.Creator</span>
-                                <span>@set.Difficulties @(set.Difficulties == 1 ? "difficulty" : "difficulties")</span>
+                                <span>@L.F("mapped by {0}", set.Creator)</span>
+                                <span>@L.F(set.Difficulties == 1 ? "{0} difficulty" : "{0} difficulties", set.Difficulties)</span>
                                 @foreach (var mode in set.Modes)
                                 {
                                     <span><i class="dot mode-@mode"></i> @Format.Mode(mode)</span>
                                 }
                                 @if (set.SetId <= 0)
                                 {
-                                    <span class="tag">not on osu! website</span>
+                                    <span class="tag">@L["not on osu! website"]</span>
                                 }
                             </div>
                         </div>
                         @if (set.SetId > 0)
                         {
-                            <button class="btn small" @onclick="() => ShellLauncher.Open(SetUrl(set.SetId))">osu! page</button>
+                            <button class="btn small" @onclick="() => ShellLauncher.Open(SetUrl(set.SetId))">@L["osu! page"]</button>
                         }
                     </div>
                 </Virtualize>

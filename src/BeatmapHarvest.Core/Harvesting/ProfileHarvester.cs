@@ -15,7 +15,11 @@ public sealed record HarvestOptions
 }
 
 /// <param name="Fraction">Estimated progress from 0 to 1, based on the number of API requests still expected.</param>
-public sealed record HarvestProgress(string Message, int MapsetsFound, double Fraction);
+/// <param name="Template">English message with {0}-style placeholders; a UI can translate it and fill in <paramref name="Args"/>.</param>
+public sealed record HarvestProgress(string Template, object[] Args, int MapsetsFound, double Fraction)
+{
+    public string Message => string.Format(System.Globalization.CultureInfo.InvariantCulture, Template, Args);
+}
 
 /// <summary>Collects every beatmapset linked to a profile (score lists + most played).</summary>
 public sealed class ProfileHarvester(IOsuDataSource api)
@@ -34,10 +38,10 @@ public sealed class ProfileHarvester(IOsuDataSource api)
     {
         var aggregator = new MapsetAggregator();
         var budget = new RequestBudget();
-        void Report(string message) => progress?.Report(new HarvestProgress(message, aggregator.Count, budget.Fraction));
+        void Report(string template, params object[] args) => progress?.Report(new HarvestProgress(template, args, aggregator.Count, budget.Fraction));
 
         budget.Plan(1);
-        Report($"Looking up {profile.ApiKey}…");
+        Report("Looking up {0}…", profile.ApiKey);
         var user = await api.GetUserAsync(profile, cancellationToken).ConfigureAwait(false);
         budget.Done();
 
@@ -54,7 +58,7 @@ public sealed class ProfileHarvester(IOsuDataSource api)
         }
         var mostPlayedPages = ExpectedRequests(user.BeatmapPlaycountsCount, options.PageSize);
         budget.Plan(plans.Sum(p => p.Pages) + mostPlayedPages);
-        Report($"Found {user.Username} (id {user.Id}).");
+        Report("Found {0} (id {1}).", user.Username, user.Id);
 
         foreach (var (type, mode, pages) in plans)
         {
@@ -68,14 +72,14 @@ public sealed class ProfileHarvester(IOsuDataSource api)
                     options.PageSize,
                     tracker,
                     cancellationToken).ConfigureAwait(false);
-                Report($"Scores {source} [{mode}]: {count}.");
+                Report("Scores {0} [{1}]: {2}.", source, mode, count);
             }
             catch (OsuApiException ex) when (ex.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.BadRequest or HttpStatusCode.UnprocessableEntity)
             {
                 // A list that the API does not offer for this profile/mode should not abort the harvest.
                 tracker.RequestDone(moreExpected: false);
                 tracker.Finish();
-                Report($"Scores {source} [{mode}]: skipped ({ex.Message}).");
+                Report("Scores {0} [{1}]: skipped ({2}).", source, mode, ex.Message);
             }
         }
 
@@ -84,16 +88,16 @@ public sealed class ProfileHarvester(IOsuDataSource api)
             page =>
             {
                 foreach (var entry in page) aggregator.AddMostPlayed(entry);
-                Report($"Most played: {aggregator.Count} beatmapsets so far…");
+                Report("Most played: {0} beatmapsets so far…", aggregator.Count);
             },
             options.PageSize,
             budget.Tracker(mostPlayedPages),
             cancellationToken).ConfigureAwait(false);
-        Report($"Most played: {played} difficulties.");
+        Report("Most played: {0} difficulties.", played);
 
         var mapsets = aggregator.Build();
         budget.Complete();
-        Report($"Done: {mapsets.Count} beatmapsets.");
+        Report("Done: {0} beatmapsets.", mapsets.Count);
 
         return new HarvestResult
         {

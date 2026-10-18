@@ -26,10 +26,10 @@ internal static class Format
         return string.Create(CultureInfo.InvariantCulture, $"{s / 60}:{s % 60:00}");
     }
 
-    public static string Stars(double stars) => stars.ToString("0.00", CultureInfo.CurrentCulture);
+    public static string Stars(double stars) => stars.ToString("0.00", Services.Localizer.ActiveCulture);
 
     /// <summary>A map attribute (CS, AR, BPM…): whole numbers without decimals, otherwise one decimal.</summary>
-    public static string Number(double value) => value.ToString("0.#", CultureInfo.CurrentCulture);
+    public static string Number(double value) => value.ToString("0.#", Services.Localizer.ActiveCulture);
 
     /// <summary>A 0–1 fraction as a CSS-safe percentage, e.g. <c>42.5%</c>.</summary>
     public static string Percent(double fraction, int decimals = 1) =>

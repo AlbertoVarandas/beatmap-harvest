@@ -6,36 +6,36 @@
 @inject NavigationManager Nav
 
 <div class="panel-head">
-    <h1>My friends</h1>
+    <h1>@L["My friends"]</h1>
     @if (_friends is { Count: > 0 })
     {
-        <input class="input small" placeholder="Search" @bind="_filter" @bind:event="oninput" />
+        <input class="input small" placeholder="@L["Search"]" @bind="_filter" @bind:event="oninput" />
     }
 </div>
-<p class="muted">Harvest a friend's profile to see and download their maps.</p>
+<p class="muted">@L["Harvest a friend's profile to see and download their maps."]</p>
 
 @if (Account.User is null)
 {
-    <div class="callout warn">Sign in with your osu! account in <a href="settings">Settings</a> to see your friends.</div>
+    <div class="callout warn">@L["Sign in with your osu! account in Settings to see your friends."] <a href="settings">@L["Settings"]</a></div>
 }
 else if (_loading)
 {
-    <div class="actions"><span class="spinner"></span> Loading your friends…</div>
+    <div class="actions"><span class="spinner"></span> @L["Loading your friends…"]</div>
 }
 else if (_error is not null)
 {
     <div class="callout error">@_error</div>
-    <button class="btn" @onclick="LoadAsync">Try again</button>
+    <button class="btn" @onclick="LoadAsync">@L["Try again"]</button>
 }
 else if (_friends is { Count: 0 })
 {
-    <p class="muted">Your friend list is empty.</p>
+    <p class="muted">@L["Your friend list is empty."]</p>
 }
 else if (_friends is not null)
 {
     @if (Harvest.IsRunning)
     {
-        <div class="callout ok">A harvest is running. <a href="beatmaps">See its progress</a>.</div>
+        <div class="callout ok">@L["A harvest is running."] <a href="beatmaps">@L["See its progress"]</a>.</div>
     }
     <div class="friends">
         @foreach (var friend in Shown())
@@ -49,10 +49,10 @@ else if (_friends is not null)
                 <span class="friend-name">@friend.Username</span>
                 @if (harvested)
                 {
-                    <a class="btn small" href="@ProfileHref(friend.Id)">Beatmaps</a>
+                    <a class="btn small" href="@ProfileHref(friend.Id)">@L["Beatmaps"]</a>
                 }
                 <button class="btn small @(harvested ? "" : "primary")" disabled="@Harvest.IsRunning" @onclick="() => HarvestFriend(friend)">
-                    @(harvested ? "Harvest again" : "Harvest")
+                    @L[harvested ? "Harvest again" : "Harvest"]
                 </button>
             </div>
         }
@@ -83,13 +83,13 @@ else if (_friends is not null)
         }
         catch (OsuApiException ex)
         {
-            _error = ex.StatusCode == System.Net.HttpStatusCode.Forbidden
+            _error = L[ex.StatusCode == System.Net.HttpStatusCode.Forbidden
                 ? "osu! did not allow reading your friend list. Sign out and in again in Settings."
-                : ex.Message;
+                : ex.Message];
         }
         catch (HttpRequestException)
         {
-            _error = "Could not reach osu!. Check your connection.";
+            _error = L["Could not reach osu!. Check your connection."];
         }
         finally
         {

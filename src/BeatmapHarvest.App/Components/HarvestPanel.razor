@@ -6,20 +6,20 @@
 
 <section class="panel harvest-panel">
     <div class="folder-field">
-        <input class="input" aria-label="Profile" placeholder="Profile link, id or username"
+        <input class="input" aria-label="@L["Profile"]" placeholder="@L["Profile link, id or username"]"
                @bind="_profileInput" @bind:event="oninput" disabled="@Session.IsRunning" @onkeydown="OnKeyDown" />
         @if (Account.User is { } me)
         {
             <button class="btn" type="button" disabled="@Session.IsRunning" title="@me.Username"
-                    @onclick="() => _profileInput = me.UserId.ToString(CultureInfo.InvariantCulture)">My profile</button>
+                    @onclick="() => _profileInput = me.UserId.ToString(CultureInfo.InvariantCulture)">@L["My profile"]</button>
         }
         @if (Session.IsRunning)
         {
-            <button class="btn" @onclick="Session.Cancel">Cancel</button>
+            <button class="btn" @onclick="Session.Cancel">@L["Cancel"]</button>
         }
         else
         {
-            <button class="btn primary" @onclick="StartAsync">Harvest</button>
+            <button class="btn primary" @onclick="StartAsync">@L["Harvest"]</button>
         }
     </div>
     @if (_inputError is not null)
@@ -28,7 +28,7 @@
     }
 
     <div class="harvest-options">
-        <span class="muted">Score lists from</span>
+        <span class="muted">@L["Score lists from"]</span>
         <div class="chips">
             @foreach (var mode in Ruleset.All)
             {
@@ -56,7 +56,7 @@
     @if (Session.Log.Count > 0)
     {
         <details class="log-details" open="@Session.IsRunning">
-            <summary>Details</summary>
+            <summary>@L["Details"]</summary>
             @* Newest first: .log reverses the column, so it stays pinned to the newest line without JS. *@
             <div class="log">
                 @foreach (var line in Session.Log.Reverse())
@@ -84,7 +84,7 @@
     {
         if (!UserReference.TryParse(_profileInput, out var profile))
         {
-            _inputError = "Enter a profile link (osu.ppy.sh/users/…), an id or a username.";
+            _inputError = L["Enter a profile link (osu.ppy.sh/users/…), an id or a username."];
             return;
         }
         _inputError = null;

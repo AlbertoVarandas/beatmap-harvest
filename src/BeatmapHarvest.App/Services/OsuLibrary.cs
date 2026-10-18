@@ -8,7 +8,7 @@ namespace BeatmapHarvest.App.Services;
 /// For stable it reads <c>osu!.db</c> (a copy) and the Songs folder; for lazer it reads the .osu files in its store.
 /// Combined with Beatmap Harvest's own downloads. Cached until <see cref="Reload"/>.
 /// </summary>
-public sealed class OsuLibrary(SettingsStore settings, DownloadLedger ledger, AppPaths paths)
+public sealed class OsuLibrary(SettingsStore settings, DownloadLedger ledger, AppPaths paths, Localizer l)
 {
     private readonly Lock _lock = new();
     private Task<LibrarySnapshot>? _snapshot;
@@ -78,7 +78,7 @@ public sealed class OsuLibrary(SettingsStore settings, DownloadLedger ledger, Ap
                     }
                     catch (InvalidDataException ex)
                     {
-                        error = $"Could not read osu!.db ({ex.Message}). Only the Songs folder is used.";
+                        error = l.F("Could not read osu!.db ({0}). Only the Songs folder is used.", ex.Message);
                     }
                 }
                 inGame.UnionWith(OwnedMapsetScanner.Scan(SongsDirectory, includeDirectories: true));
@@ -86,7 +86,7 @@ public sealed class OsuLibrary(SettingsStore settings, DownloadLedger ledger, Ap
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            error = $"Could not read the osu! library ({ex.Message}).";
+            error = l.F("Could not read the osu! library ({0}).", ex.Message);
         }
 
         inGame.UnionWith(maps.Where(m => m.BeatmapsetId > 0).Select(m => m.BeatmapsetId));
@@ -97,7 +97,7 @@ public sealed class OsuLibrary(SettingsStore settings, DownloadLedger ledger, Ap
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            error ??= $"Could not read the downloads folder ({ex.Message}).";
+            error ??= l.F("Could not read the downloads folder ({0}).", ex.Message);
         }
 
         return new LibrarySnapshot(clients, client, SongsDirectory, maps, database, new OwnershipIndex(inGame, downloaded), error);

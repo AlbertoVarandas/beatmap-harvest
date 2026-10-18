@@ -4,8 +4,8 @@
     <span>@Label @if (Hint is not null) { <small class="muted">(@Hint)</small> }</span>
     <div class="folder-field">
         <input class="input" placeholder="@DefaultPath" value="@Value" @onchange="OnTyped" />
-        <button class="btn" type="button" @onclick="Browse">Browse…</button>
-        <button class="btn" type="button" disabled="@(Value is null)" title="Use @DefaultPath" @onclick="() => SetAsync(null)">Default</button>
+        <button class="btn" type="button" @onclick="Browse">@L["Browse…"]</button>
+        <button class="btn" type="button" disabled="@(Value is null)" title="@L.F("Use {0}", DefaultPath)" @onclick="() => SetAsync(null)">@L["Default"]</button>
     </div>
 </div>
 
@@ -22,7 +22,7 @@
 
     private Task Browse()
     {
-        var picked = FileDialogs.PickFolder($"Choose: {Label}", Value ?? DefaultPath);
+        var picked = FileDialogs.PickFolder(L.F("Choose: {0}", Label), Value ?? DefaultPath);
         return picked is null ? Task.CompletedTask : SetAsync(picked);
     }
 
