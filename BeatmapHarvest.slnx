@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BeatmapHarvest.App/BeatmapHarvest.App.csproj" />
+    <Project Path="src/BeatmapHarvest.Core/BeatmapHarvest.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BeatmapHarvest.Core.Tests/BeatmapHarvest.Core.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Platform-neutral logic: osu! API, harvesting, library scan, downloads, selection. No UI here. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>BeatmapHarvest.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="BeatmapHarvest.Core.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!-- Windows shell: a WPF window hosting a BlazorWebView (WebView2). UI in Razor/HTML/CSS, logic in BeatmapHarvest.Core. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- The WebView2 composition control needs the Windows SDK projection (Windows 10 1809+). -->
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>BeatmapHarvest.App</RootNamespace>
+    <AssemblyName>BeatmapHarvest</AssemblyName>
+
+    <!-- wwwroot is embedded in the assembly (see EmbeddedBlazorWebView) so the published .exe needs no loose files. -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+    <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\**" />
+    <EmbeddedResource Include="wwwroot\**" />
+    <!-- Blazor's own script, normally served as a static web asset. -->
+    <EmbeddedResource Include="$(PkgMicrosoft_AspNetCore_Components_WebView)\staticwebassets\blazor.webview.js"
+                      Link="wwwroot\_framework\blazor.webview.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Wpf" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- WPF's implicit usings leave these out. -->
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BeatmapHarvest.Core\BeatmapHarvest.Core.csproj" />
+  </ItemGroup>
+
+</Project>
