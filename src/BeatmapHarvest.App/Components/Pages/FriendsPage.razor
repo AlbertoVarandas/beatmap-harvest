@@ -1,0 +1,120 @@
+@page "/friends"
+@implements IDisposable
+@inject OsuAccount Account
+@inject HarvestSession Harvest
+@inject ProfileLibrary Profiles
+@inject NavigationManager Nav
+
+<div class="panel-head">
+    <h1>My friends</h1>
+    @if (_friends is { Count: > 0 })
+    {
+        <input class="input small" placeholder="Search" @bind="_filter" @bind:event="oninput" />
+    }
+</div>
+<p class="muted">Harvest a friend's profile to see and download their maps.</p>
+
+@if (Account.User is null)
+{
+    <div class="callout warn">Sign in with your osu! account in <a href="settings">Settings</a> to see your friends.</div>
+}
+else if (_loading)
+{
+    <div class="actions"><span class="spinner"></span> Loading your friends…</div>
+}
+else if (_error is not null)
+{
+    <div class="callout error">@_error</div>
+    <button class="btn" @onclick="LoadAsync">Try again</button>
+}
+else if (_friends is { Count: 0 })
+{
+    <p class="muted">Your friend list is empty.</p>
+}
+else if (_friends is not null)
+{
+    @if (Harvest.IsRunning)
+    {
+        <div class="callout ok">A harvest is running. <a href="beatmaps">See its progress</a>.</div>
+    }
+    <div class="friends">
+        @foreach (var friend in Shown())
+        {
+            var harvested = Profiles.Get(friend.Id) is not null;
+            <div class="friend">
+                @if (friend.AvatarUrl is not null)
+                {
+                    <img class="avatar small" src="@friend.AvatarUrl" alt="" loading="lazy" />
+                }
+                <span class="friend-name">@friend.Username</span>
+                @if (harvested)
+                {
+                    <a class="btn small" href="@ProfileHref(friend.Id)">Beatmaps</a>
+                }
+                <button class="btn small @(harvested ? "" : "primary")" disabled="@Harvest.IsRunning" @onclick="() => HarvestFriend(friend)">
+                    @(harvested ? "Harvest again" : "Harvest")
+                </button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private IReadOnlyList<OsuUser>? _friends;
+    private bool _loading;
+    private string? _error;
+    private string _filter = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Harvest.Changed += OnChanged;
+        Profiles.Changed += OnChanged;
+        if (Account.User is not null)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        try
+        {
+            _friends = await Account.GetFriendsAsync();
+        }
+        catch (OsuApiException ex)
+        {
+            _error = ex.StatusCode == System.Net.HttpStatusCode.Forbidden
+                ? "osu! did not allow reading your friend list. Sign out and in again in Settings."
+                : ex.Message;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Could not reach osu!. Check your connection.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private IEnumerable<OsuUser> Shown() => _filter.Length == 0
+        ? _friends!
+        : _friends!.Where(f => f.Username.Contains(_filter, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Starts the harvest and opens Beatmaps, where its progress and then the profile appear.</summary>
+    private void HarvestFriend(OsuUser friend)
+    {
+        Harvest.Start(new UserReference(friend.Id.ToString(CultureInfo.InvariantCulture), null));
+        Nav.NavigateTo("beatmaps");
+    }
+
+    private static string ProfileHref(long id) => string.Create(CultureInfo.InvariantCulture, $"beatmaps/{id}");
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Harvest.Changed -= OnChanged;
+        Profiles.Changed -= OnChanged;
+    }
+}

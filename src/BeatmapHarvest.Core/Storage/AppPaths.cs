@@ -5,8 +5,14 @@ namespace BeatmapHarvest.Core.Storage;
 /// <summary>Where the app keeps its data. Defaults to <c>%LOCALAPPDATA%\BeatmapHarvest</c>.</summary>
 public sealed class AppPaths(string root)
 {
-    public static AppPaths Default { get; } = new(Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BeatmapHarvest"));
+    /// <summary>
+    /// %LOCALAPPDATA%\BeatmapHarvest, or the folder in the <c>BEATMAPHARVEST_DATA</c> environment variable
+    /// (a portable setup, or a separate profile for testing).
+    /// </summary>
+    public static AppPaths Default { get; } = new(
+        Environment.GetEnvironmentVariable("BEATMAPHARVEST_DATA") is { Length: > 0 } custom
+            ? custom
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BeatmapHarvest"));
 
     /// <summary>osu! stable's Songs folder in its default install location.</summary>
     public static string DefaultSongsDirectory { get; } = Path.Combine(

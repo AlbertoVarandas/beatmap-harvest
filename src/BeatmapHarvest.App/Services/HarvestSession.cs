@@ -18,6 +18,9 @@ public sealed class HarvestSession(ProfileHarvester harvester, ProfileLibrary pr
 
     public event Action? Changed;
 
+    /// <summary>Raised after a harvest finished and was saved, with the new result.</summary>
+    public event Action<HarvestResult>? Completed;
+
     public HarvestResult? Current { get; private set; }
     public HarvestSummary? Summary { get; private set; }
     public bool IsRunning { get; private set; }
@@ -60,10 +63,14 @@ public sealed class HarvestSession(ProfileHarvester harvester, ProfileLibrary pr
         Changed?.Invoke();
     }
 
+    /// <summary>Starts a harvest in the background (does nothing while one is running).</summary>
+    public void Start(UserReference profile, HarvestOptions? options = null) => _ = StartAsync(profile, options ?? new HarvestOptions());
+
     public async Task StartAsync(UserReference profile, HarvestOptions options)
     {
         if (IsRunning)
             return;
+        HarvestResult? finished = null;
 
         _cts = new CancellationTokenSource();
         IsRunning = true;
@@ -80,6 +87,7 @@ public sealed class HarvestSession(ProfileHarvester harvester, ProfileLibrary pr
             var result = await Task.Run(() => harvester.HarvestAsync(profile, options, progress, _cts.Token)).ConfigureAwait(false);
             SetResult(result);
             profiles.Put(result);
+            finished = result;
         }
         catch (OperationCanceledException)
         {
@@ -100,6 +108,8 @@ public sealed class HarvestSession(ProfileHarvester harvester, ProfileLibrary pr
             _cts = null;
             Changed?.Invoke();
         }
+        if (finished is not null)
+            Completed?.Invoke(finished);
     }
 
     public void Cancel() => _cts?.Cancel();

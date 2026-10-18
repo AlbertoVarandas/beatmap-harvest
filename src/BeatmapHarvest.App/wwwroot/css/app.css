@@ -94,6 +94,23 @@ small { font-weight: normal; }
 .nav-sub-item.active { background: var(--panel-2); color: var(--pink); font-weight: 700; }
 .nav-sub-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nav-sub-item small { opacity: .7; }
+.nav-sub-item.me { color: var(--text); font-weight: 800; }
+.nav-sub-item.me.active { color: var(--pink); }
+.nav-item.disabled { color: var(--muted); opacity: .45; cursor: not-allowed; }
+.nav-item.disabled:hover { background: none; }
+
+/* Beatmaps hub */
+.harvest-panel .folder-field .input { font-size: 15px; }
+.harvest-options { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.chip.small { padding: 2px 10px; font-size: 12.5px; }
+.error-text.spaced { margin: 8px 0 0; }
+.harvest-panel .progress-row { margin-top: 14px; }
+.log-details { margin-top: 10px; }
+.log-details summary { cursor: pointer; color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+.log-details .log { height: 180px; }
+.profile-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 26px 0 4px; }
+.profile-head h2 { margin: 0; font-size: 20px; }
+.push-right { margin-left: auto; margin-top: 0; }
 /* .content fills the window and scrolls, so the scrollbar sits at the window edge; .page centres the column. */
 .content { flex: 1; min-width: 0; overflow-y: auto; }
 .page { max-width: 1200px; margin: 0 auto; padding: 28px 36px; }

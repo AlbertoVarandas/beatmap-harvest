@@ -1,6 +1,8 @@
 @* Optional "Sign in with osu!" (OAuth authorization code). *@
 @implements IDisposable
 @inject OsuAccount Account
+@inject HarvestSession Harvest
+@inject NavigationManager Nav
 
 <section class="panel">
     <h2>osu! account <small class="muted">optional</small></h2>
@@ -68,6 +70,13 @@
             await Account.SignInAsync();
             _ok = true;
             _message = $"Signed in as {Account.User?.Username}.";
+
+            // Signing in harvests your own profile right away; Beatmaps shows the progress and then your maps.
+            if (Account.User is { } me)
+            {
+                Harvest.Start(new UserReference(me.UserId.ToString(CultureInfo.InvariantCulture), null));
+                Nav.NavigateTo("beatmaps");
+            }
         }
         catch (OsuApiException ex)
         {
