@@ -1,0 +1,141 @@
+@* Adds the selected beatmapsets to an osu! collection (kept in memory until saved on the Collections page). *@
+@inject CollectionsService Collections
+
+<div class="modal-backdrop" @onclick="CloseAsync">
+    <div class="modal small-modal" role="dialog" aria-label="Add to collection" @onclick:stopPropagation>
+        <div class="modal-body">
+            <h2>Add @Mapsets.Count @(Mapsets.Count == 1 ? "map" : "maps") to a collection</h2>
+
+            @if (_db is null)
+            {
+                <div class="callout warn">osu! (stable) was not found. <a href="settings">Set the osu! folder in Settings</a>.</div>
+            }
+            else
+            {
+                <label class="field">
+                    <span>Collection</span>
+                    <select class="input" @bind="_target" disabled="@_busy">
+                        @foreach (var collection in _db.Collections)
+                        {
+                            <option value="@collection.Name">@collection.Name (@collection.Hashes.Count)</option>
+                        }
+                        <option value="@NewOption">New collection…</option>
+                    </select>
+                </label>
+                @if (_target == NewOption)
+                {
+                    <label class="field">
+                        <span>Name</span>
+                        <input class="input" @bind="_newName" @bind:event="oninput" disabled="@_busy" />
+                    </label>
+                }
+                <label class="check-field">
+                    <input type="checkbox" @bind="_includeMissing" disabled="@_busy" />
+                    Also add maps not in osu! yet (looks each one up on osu!, about one per second)
+                </label>
+
+                @if (_busy)
+                {
+                    <div class="progress-row">
+                        <div class="progress"><div style="width:@Format.Percent(_total == 0 ? 0 : (double)_done / _total)"></div></div>
+                        <b>@_done/@_total</b>
+                    </div>
+                }
+                @if (_message is not null)
+                {
+                    <div class="callout @(_ok ? "ok" : "error")">@_message</div>
+                }
+
+                <div class="actions">
+                    @if (_finished)
+                    {
+                        <a class="btn primary" href="collections">Open Collections</a>
+                        <button class="btn" @onclick="CloseAsync">Close</button>
+                    }
+                    else
+                    {
+                        <button class="btn primary" disabled="@(_busy || TargetName().Length == 0)" @onclick="AddAsync">Add</button>
+                        <button class="btn" @onclick="CloseAsync">@(_busy ? "Stop" : "Cancel")</button>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private const string NewOption = "\u0001new";
+
+    [Parameter, EditorRequired] public IReadOnlyCollection<MapsetInfo> Mapsets { get; set; } = [];
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private CollectionDatabase? _db;
+    private string _target = NewOption;
+    private string _newName = "Beatmap Harvest";
+    private bool _includeMissing;
+    private bool _busy;
+    private bool _finished;
+    private bool _ok;
+    private string? _message;
+    private int _done;
+    private int _total;
+    private CancellationTokenSource? _cts;
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            _db = Collections.Get();
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            _message = $"Could not read collection.db: {ex.Message}";
+        }
+        if (_db is { Collections.Count: > 0 })
+            _target = _db.Collections[0].Name;
+    }
+
+    private string TargetName() => (_target == NewOption ? _newName : _target).Trim();
+
+    private async Task AddAsync()
+    {
+        _busy = true;
+        _message = null;
+        _cts = new CancellationTokenSource();
+        var progress = new Progress<(int Done, int Total)>(p =>
+        {
+            (_done, _total) = p;
+            StateHasChanged();
+        });
+        try
+        {
+            var result = await Collections.AddAsync(TargetName(), Mapsets, _includeMissing, progress, _cts.Token);
+            _ok = true;
+            _finished = true;
+            _message = $"Added {result.Added} difficulties to \"{TargetName()}\"."
+                       + (result.NotFound > 0 ? $" {result.NotFound} maps were skipped ({(_includeMissing ? "not found on osu!" : "not in osu! yet")})." : "")
+                       + " Save on the Collections page to write it to osu!.";
+        }
+        catch (OperationCanceledException)
+        {
+            _ok = false;
+            _message = "Stopped. Nothing was added.";
+        }
+        finally
+        {
+            _busy = false;
+            _cts.Dispose();
+            _cts = null;
+        }
+    }
+
+    private Task CloseAsync()
+    {
+        if (_busy)
+        {
+            _cts?.Cancel();
+            return Task.CompletedTask;
+        }
+        return OnClose.InvokeAsync();
+    }
+}

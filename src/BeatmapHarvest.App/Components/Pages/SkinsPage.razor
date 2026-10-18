@@ -1,0 +1,68 @@
+@page "/skins"
+@inject OsuLibrary Library
+
+<h1>Skins</h1>
+<p class="muted">The skins installed in osu! (stable), with a preview of their main elements. To change skin, use osu!'s options.</p>
+
+@if (_install is null)
+{
+    <div class="callout warn">osu! (stable) was not found. <a href="settings">Set the osu! folder in Settings</a>.</div>
+}
+else if (_skins.Count == 0)
+{
+    <p class="muted">No skins in <code>@_install.SkinsDirectory</code>.</p>
+}
+else
+{
+    <div class="actions">
+        <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(_install.SkinsDirectory)">Open Skins folder</button>
+        <span class="muted">@_skins.Count skins</span>
+    </div>
+    <div class="skins">
+        @foreach (var skin in _skins)
+        {
+            var current = string.Equals(skin.Folder, _install.CurrentSkin, StringComparison.OrdinalIgnoreCase);
+            <section class="panel skin @(current ? "current" : "")">
+                <div class="panel-head">
+                    <div>
+                        <h2>@skin.Name @if (current) { <span class="tag have">current</span> }</h2>
+                        <div class="muted small-text">
+                            @(skin.Author is null ? "unknown author" : $"by {skin.Author}")
+                            @if (skin.Version is not null) { <span> · skin version @skin.Version</span> }
+                            · @skin.Files files
+                        </div>
+                    </div>
+                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(Path.Combine(_install.SkinsDirectory, skin.Folder))">Open folder</button>
+                </div>
+                @if (skin.Previews.Count == 0)
+                {
+                    <p class="muted">No preview images (this skin uses osu!'s defaults for these elements).</p>
+                }
+                else
+                {
+                    <div class="skin-previews">
+                        @foreach (var element in skin.Previews)
+                        {
+                            <figure>
+                                <div class="skin-img"><img src="@OsuFilesHost.Url(Path.Combine("Skins", element.RelativePath))" alt="@element.Label" loading="lazy" onerror="this.style.visibility='hidden'" /></div>
+                                <figcaption>@element.Label</figcaption>
+                            </figure>
+                        }
+                    </div>
+                }
+            </section>
+        }
+    </div>
+}
+
+@code {
+    private OsuInstall? _install;
+    private IReadOnlyList<SkinInfo> _skins = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _install = Library.Install;
+        if (_install is not null)
+            _skins = await Task.Run(() => SkinCatalog.List(_install.SkinsDirectory));
+    }
+}

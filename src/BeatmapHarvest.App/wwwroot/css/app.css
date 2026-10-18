@@ -415,6 +415,38 @@ small { font-weight: normal; }
 .local-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .map-meta .dot { display: inline-block; vertical-align: middle; }
 
+/* Collections */
+.small-modal { width: min(560px, 100%); }
+.small-modal .modal-body { padding: 22px; }
+.small-modal h2 { margin-bottom: 16px; }
+.small-modal .check-field { margin: 4px 0 14px; }
+.collection h2 { margin: 0; }
+.clickable-title { cursor: pointer; user-select: none; }
+.folder-field.grow { flex: 1; }
+.collection .dl-list { margin-top: 12px; }
+.dl-row .btn.small { padding: 2px 8px; }
+
+/* Skins */
+.skins { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 0 18px; }
+.skin h2 { margin: 0 0 2px; }
+.skin h2 .tag { margin-left: 8px; vertical-align: middle; }
+.skin.current { border-color: var(--pink); }
+.small-text { font-size: 12.5px; }
+.skin-previews { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.skin-previews figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.skin-img {
+    width: 72px;
+    height: 72px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Checkerboard so transparent and dark elements stay visible. */
+    background: repeating-conic-gradient(#2f272b 0% 25%, #3a3135 0% 50%) 50% / 16px 16px;
+}
+.skin-img img { max-width: 64px; max-height: 64px; object-fit: contain; }
+.skin-previews figcaption { font-size: 11.5px; color: var(--muted); }
+
 /* Account and friends */
 .account-row { display: flex; align-items: center; gap: 14px; }
 .account-text { flex: 1; }

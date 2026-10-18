@@ -1,4 +1,6 @@
+using BeatmapHarvest.App.Services;
 using Microsoft.AspNetCore.Components.WebView.Wpf;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 
 namespace BeatmapHarvest.App;
@@ -11,6 +13,12 @@ namespace BeatmapHarvest.App;
 /// </summary>
 public sealed class EmbeddedBlazorWebView : BlazorWebView
 {
+    public EmbeddedBlazorWebView()
+    {
+        // Once WebView2 exists, expose the osu! folder (skin images) at https://osu.local/.
+        BlazorWebViewInitialized += (_, e) => Services?.GetService<OsuFilesHost>()?.Attach(e.WebView.CoreWebView2);
+    }
+
     public override IFileProvider CreateFileProvider(string contentRootDir) =>
         new ManifestEmbeddedFileProvider(typeof(EmbeddedBlazorWebView).Assembly, "wwwroot");
 }

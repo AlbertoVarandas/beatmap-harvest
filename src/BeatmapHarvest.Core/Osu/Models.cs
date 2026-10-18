@@ -133,6 +133,9 @@ public sealed record OsuBeatmapDetails
     public int? MaxCombo { get; init; }
     public long Playcount { get; init; }
     public long Passcount { get; init; }
+
+    /// <summary>MD5 of the .osu file; what osu! collections refer to.</summary>
+    public string? Checksum { get; init; }
 }
 
 internal sealed record OsuTokenResponse

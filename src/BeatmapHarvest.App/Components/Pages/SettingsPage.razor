@@ -5,6 +5,7 @@
 @inject SettingsStore Settings
 @inject AppPaths Paths
 @inject OsuLibrary Library
+@inject OsuFilesHost FilesHost
 
 <h1>Settings</h1>
 
@@ -187,5 +188,6 @@
         _parallel = Math.Clamp(_parallel, 1, 6);
         _foldersMessage = "Saved.";
         Library.Reload();
+        FilesHost.Refresh();
     }
 }

@@ -252,6 +252,7 @@ else
         {
             <a href="downloads">A download is running…</a>
         }
+        <button class="btn" disabled="@(_selected.Count == 0)" @onclick="() => _addToCollection = true">Add to collection…</button>
         <button class="btn primary" disabled="@(_selected.Count == 0 || Downloads.IsRunning)" @onclick="StartDownload">
             Download @_selected.Count @(_selected.Count == 1 ? "map" : "maps")
         </button>
@@ -260,6 +261,11 @@ else
     @if (_previewUrl is not null)
     {
         <audio @key="_previewUrl" src="@_previewUrl" autoplay @onended="StopPreview"></audio>
+    }
+
+    @if (_addToCollection)
+    {
+        <AddToCollectionDialog Mapsets="_selected" OnClose="() => _addToCollection = false" />
     }
 
     @if (_details is not null)
@@ -296,6 +302,7 @@ else
 
     private long? _playing;
     private MapsetInfo? _details;
+    private bool _addToCollection;
     private string? _previewUrl;
     private string? _message;
     private bool _messageOk;
