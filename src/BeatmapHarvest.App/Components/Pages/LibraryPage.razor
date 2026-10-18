@@ -17,33 +17,41 @@
 }
 else
 {
-    var install = _snapshot.Install;
+    var clients = _snapshot.Clients;
     var db = _snapshot.Database;
 
     @if (_snapshot.Error is not null)
     {
         <div class="callout warn">@_snapshot.Error</div>
     }
+    <ClientNotice Snapshot="_snapshot" />
 
     <section class="panel">
-        <h2>Installation</h2>
-        @if (install is null)
+        <h2>@Format.Client(_snapshot.Client)</h2>
+        @if (_snapshot.Client is null)
         {
-            <div class="callout warn">
-                osu! (stable) was not found in the usual places. <a href="settings">Set the osu! folder in Settings</a>.
-                osu!lazer is not supported: it stores maps in its own database instead of a Songs folder.
-            </div>
+            <div class="callout warn">osu! was not found on this PC. <a href="settings">Set its folder in Settings</a>.</div>
         }
         else
         {
             <div class="detail-grid">
                 <div><span>Beatmapsets</span><b>@_sets.Count</b></div>
-                <div><span>Difficulties</span><b>@(db?.Beatmaps.Count.ToString(CultureInfo.CurrentCulture) ?? "–")</b></div>
-                <div><span>Player</span><b>@(string.IsNullOrEmpty(db?.PlayerName) ? "–" : db.PlayerName)</b></div>
+                <div><span>Difficulties</span><b>@_snapshot.Maps.Count</b></div>
+                @if (!string.IsNullOrEmpty(db?.PlayerName))
+                {
+                    <div><span>Player</span><b>@db.PlayerName</b></div>
+                }
             </div>
             <div class="actions">
-                <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(install.Root)">Open osu! folder</button>
-                <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(_snapshot.SongsDirectory)">Open Songs folder</button>
+                @if (_snapshot.Client == OsuClient.Lazer)
+                {
+                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(clients.Lazer!.DataDirectory)">Open osu!lazer folder</button>
+                }
+                else
+                {
+                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(clients.Stable!.Root)">Open osu! folder</button>
+                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(_snapshot.SongsDirectory)">Open Songs folder</button>
+                }
             </div>
         }
     </section>
@@ -141,14 +149,15 @@ else
     {
         _snapshot = null;
         var snapshot = await Library.GetAsync();
-        _sets = await Task.Run(() => (snapshot.Database?.Beatmaps ?? [])
+        var stable = snapshot.Client == OsuClient.Stable;
+        _sets = await Task.Run(() => snapshot.Maps
             .GroupBy(b => b.BeatmapsetId > 0 ? b.BeatmapsetId.ToString(CultureInfo.InvariantCulture) : "folder:" + b.FolderName, StringComparer.Ordinal)
             .Select(g =>
             {
                 var first = g.First();
                 return new LocalSet(first.BeatmapsetId, first.Artist, first.Title, first.Creator, g.Count(),
                     g.Select(b => b.Mode).Distinct().Order(StringComparer.Ordinal).ToList(),
-                    LocalBackground(snapshot.SongsDirectory, first));
+                    stable ? LocalBackground(snapshot.SongsDirectory, first) : null);
             })
             .OrderBy(s => s.Artist, StringComparer.CurrentCultureIgnoreCase)
             .ThenBy(s => s.Title, StringComparer.CurrentCultureIgnoreCase)

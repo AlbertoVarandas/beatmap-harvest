@@ -99,6 +99,10 @@ small { font-weight: normal; }
 .nav-item.disabled { color: var(--muted); opacity: .45; cursor: not-allowed; }
 .nav-item.disabled:hover { background: none; }
 
+.client-list { display: flex; gap: 8px; margin-bottom: 14px; }
+.field > .segmented { align-self: flex-start; }
+.segmented button:disabled { opacity: .4; cursor: not-allowed; }
+
 /* Beatmaps hub */
 .harvest-panel .folder-field .input { font-size: 15px; }
 .harvest-options { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }

@@ -58,27 +58,59 @@
 <AccountPanel HasCredentials="_hasSaved" />
 
 <section class="panel">
-    <h2>Folders and downloads</h2>
-    <FolderField Label="Downloads folder" Hint="where .osz files are saved"
-                 @bind-Value="_downloads" DefaultPath="@Paths.DefaultDownloadsDirectory" />
-    <FolderField Label="osu! folder" Hint="detected automatically"
-                 @bind-Value="_osu" DefaultPath="@(OsuInstall.Find(null)?.Root ?? OsuInstall.DefaultRoot)" />
-    <FolderField Label="osu! Songs folder"
-                 @bind-Value="_songs" DefaultPath="@DetectedSongs" />
-    <FolderField Label="Move downloads to" Hint="default: the Songs folder"
-                 @bind-Value="_moveTo" DefaultPath="@(_songs ?? DetectedSongs)" />
+    <h2>osu!</h2>
+    @{
+        var clients = OsuClients.Detect(_osu, _lazer);
+        var inUse = clients.Resolve(_client);
+    }
+    <div class="client-list">
+        <span class="tag @(clients.Lazer is null ? "" : "have")">osu!lazer @(clients.Lazer is null ? "not found" : "found")</span>
+        <span class="tag @(clients.Stable is null ? "" : "have")">osu! (stable) @(clients.Stable is null ? "not found" : "found")</span>
+    </div>
+    <div class="field">
+        <span>Use</span>
+        <div class="segmented">
+            <button class="@(_client is null ? "on" : "")" @onclick="() => SetClient(null)">Automatic</button>
+            <button class="@(_client == OsuClient.Lazer ? "on" : "")" disabled="@(clients.Lazer is null)" @onclick="() => SetClient(OsuClient.Lazer)">osu!lazer</button>
+            <button class="@(_client == OsuClient.Stable ? "on" : "")" disabled="@(clients.Stable is null)" @onclick="() => SetClient(OsuClient.Stable)">osu! (stable)</button>
+        </div>
+    </div>
+    @if (clients.BothFound && _client is null)
+    {
+        <div class="callout warn">Both are installed, so osu!lazer is used. Pick one above if you play the other.</div>
+    }
+    else if (inUse is null)
+    {
+        <div class="callout warn">No osu! found. If it is installed somewhere unusual, set its folder below.</div>
+    }
+
+    <FolderField Label="osu!lazer folder" Hint="detected automatically"
+                  ValueChanged="v => SaveFolders(() => _lazer = v)" DefaultPath="@(LazerInstall.Find(null)?.DataDirectory ?? LazerInstall.DefaultDataDirectory)" />
+    <FolderField Label="osu! (stable) folder" Hint="detected automatically"
+                  ValueChanged="v => SaveFolders(() => _osu = v)" DefaultPath="@(OsuInstall.Find(null)?.Root ?? OsuInstall.DefaultRoot)" />
+    @if (inUse == OsuClient.Stable)
+    {
+        <FolderField Label="Songs folder"
+                      ValueChanged="v => SaveFolders(() => _songs = v)" DefaultPath="@DetectedSongs" />
+    }
+</section>
+
+<section class="panel">
+    <h2>Downloads</h2>
+    <FolderField Label="Downloads folder"
+                  ValueChanged="v => SaveFolders(() => _downloads = v)" DefaultPath="@Paths.DefaultDownloadsDirectory" />
+    @if (inUse == OsuClient.Stable)
+    {
+        <FolderField Label="Move downloads to" Hint="default: the Songs folder"
+                      ValueChanged="v => SaveFolders(() => _moveTo = v)" DefaultPath="@(_songs ?? DetectedSongs)" />
+    }
     <label class="field narrow">
         <span>Parallel downloads</span>
-        <input class="input" type="number" min="1" max="6" @bind="_parallel" />
+        <input class="input" type="number" min="1" max="6" @bind="_parallel" @bind:after="() => SaveFolders(() => { })" />
     </label>
     <div class="actions">
-        <button class="btn primary" @onclick="SaveFolders">Save</button>
         <button class="btn" @onclick="() => ShellLauncher.OpenFolder(Paths.Root)">Open data folder</button>
     </div>
-    @if (_foldersMessage is not null)
-    {
-        <div class="callout ok">@_foldersMessage</div>
-    }
 </section>
 
 @code {
@@ -97,9 +129,11 @@
     private string? _songs;
     private string? _moveTo;
 
+    private string? _lazer;
+    private OsuClient? _client;
+
     private string DetectedSongs => OsuInstall.Find(_osu)?.SongsDirectory ?? AppPaths.DefaultSongsDirectory;
     private int _parallel;
-    private string? _foldersMessage;
 
     protected override void OnInitialized()
     {
@@ -110,6 +144,8 @@
         var settings = Settings.Load();
         _downloads = settings.DownloadsDirectory;
         _osu = settings.OsuDirectory;
+        _lazer = settings.LazerDirectory;
+        _client = settings.Client;
         _songs = settings.SongsDirectory;
         _moveTo = settings.MoveToDirectory;
         _parallel = settings.MaxParallelDownloads;
@@ -190,18 +226,23 @@
         _credentialMessage = message;
     }
 
-    private void SaveFolders()
+    private void SetClient(OsuClient? client) => SaveFolders(() => _client = client);
+
+    /// <summary>Applies one change and saves every osu!/download setting right away.</summary>
+    private void SaveFolders(Action change)
     {
+        change();
+        _parallel = Math.Clamp(_parallel, 1, 6);
         Settings.Save(Settings.Load() with
         {
+            Client = _client,
             DownloadsDirectory = _downloads,
             OsuDirectory = _osu,
+            LazerDirectory = _lazer,
             SongsDirectory = _songs,
             MoveToDirectory = _moveTo,
-            MaxParallelDownloads = Math.Clamp(_parallel, 1, 6),
+            MaxParallelDownloads = _parallel,
         });
-        _parallel = Math.Clamp(_parallel, 1, 6);
-        _foldersMessage = "Saved.";
         Library.Reload();
         FilesHost.Refresh();
     }

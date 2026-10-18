@@ -1,0 +1,25 @@
+@* Shown on tools that only work with osu! stable files (collections, skins) when the app is not using osu! stable. *@
+@inject OsuLibrary Library
+
+@{
+    var clients = Library.Clients;
+}
+@if (Library.Client == OsuClient.Lazer)
+{
+    <div class="callout warn">
+        osu!lazer keeps its @What inside its own database, which Beatmap Harvest can't change.
+        @if (clients.Stable is not null)
+        {
+            <span>To work with the @What of osu! (stable), <a href="settings">switch to it in Settings</a>.</span>
+        }
+    </div>
+}
+else
+{
+    <div class="callout warn">osu! was not found on this PC. <a href="settings">Set its folder in Settings</a>.</div>
+}
+
+@code {
+    /// <summary>"collections" or "skins".</summary>
+    [Parameter, EditorRequired] public string What { get; set; } = "";
+}
