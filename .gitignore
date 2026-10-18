@@ -55,3 +55,18 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# IDEs
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.rsuser
+*.DotSettings.user
+
+# Beatmap Harvest runtime data (normally under %LOCALAPPDATA%\BeatmapHarvest, never in the repo)
+credentials.bin
+*.osz
+*.osz.part
+*.corrupt

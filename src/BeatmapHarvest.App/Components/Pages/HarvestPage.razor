@@ -1,0 +1,159 @@
+@page "/"
+@implements IDisposable
+@inject HarvestSession Session
+@inject ICredentialStore Credentials
+@inject SettingsStore Settings
+@inject AppPaths Paths
+
+<h1>Harvest a profile</h1>
+<p class="muted">Collects every beatmapset linked to an osu! profile: its score lists and every map it has played.</p>
+
+@if (!_hasCredentials)
+{
+    <div class="callout warn">
+        osu! API credentials are missing. <a href="settings">Add your client id and secret in Settings</a> first.
+    </div>
+}
+
+<section class="panel">
+    <label class="field">
+        <span>Profile</span>
+        <input class="input" placeholder="https://osu.ppy.sh/users/123, an id or a username"
+               @bind="_profileInput" @bind:event="oninput" disabled="@Session.IsRunning" />
+    </label>
+    @if (_inputError is not null)
+    {
+        <div class="error-text">@_inputError</div>
+    }
+
+    <div class="field">
+        <span>Score lists for these modes <small class="muted">(most played always covers every mode)</small></span>
+        <div class="chips">
+            @foreach (var mode in Ruleset.All)
+            {
+                <label class="chip mode-@mode @(_scoreModes.Contains(mode) ? "on" : "")">
+                    <input type="checkbox" checked="@_scoreModes.Contains(mode)" disabled="@Session.IsRunning"
+                           @onchange="e => ToggleMode(mode, (bool)e.Value!)" />
+                    @ModeLabel(mode)
+                </label>
+            }
+        </div>
+    </div>
+
+    <div class="actions">
+        @if (Session.IsRunning)
+        {
+            <button class="btn" @onclick="Session.Cancel">Cancel</button>
+            <span class="spinner"></span>
+        }
+        else
+        {
+            <button class="btn primary" disabled="@(!_hasCredentials)" @onclick="StartAsync">Start harvest</button>
+        }
+    </div>
+</section>
+
+@if (Session.Error is not null)
+{
+    <div class="callout error">@Session.Error</div>
+}
+
+@if (Session.IsRunning || Session.Log.Count > 0)
+{
+    <section class="panel">
+        <h2>Progress</h2>
+        <pre class="log">@string.Join('\n', Session.Log.TakeLast(12))</pre>
+    </section>
+}
+
+@if (!Session.IsRunning && Session.Current is { } result && Session.Summary is { } s)
+{
+    <section class="panel">
+        <div class="panel-head">
+            <h2>@result.Username <small class="muted">harvested @result.HarvestedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</small></h2>
+            <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(Paths.ProfileDirectory(result.UserId))">Open folder</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat"><b>@s.Mapsets</b><span>beatmapsets</span></div>
+            <div class="stat"><b>@s.Difficulties</b><span>difficulties</span></div>
+            <div class="stat"><b>@s.Plays</b><span>plays</span></div>
+            <div class="stat"><b>@FormatDuration(s.TotalSongLength)</b><span>total song length</span></div>
+            <div class="stat"><b>@s.MinStars.ToString("0.##", CultureInfo.CurrentCulture)–@s.MaxStars.ToString("0.##", CultureInfo.CurrentCulture)★</b><span>avg @s.AverageStars.ToString("0.##", CultureInfo.CurrentCulture)★</span></div>
+        </div>
+
+        <div class="chips">
+            @foreach (var (mode, count) in s.DifficultiesByMode)
+            {
+                <span class="chip mode-@mode on">@ModeLabel(mode) · @count</span>
+            }
+        </div>
+
+        @if (s.MostPlayed.Count > 0)
+        {
+            <h3>Most played</h3>
+            <table class="table">
+                <tbody>
+                    @foreach (var entry in s.MostPlayed)
+                    {
+                        <tr>
+                            <td class="num">@entry.Difficulty.Plays×</td>
+                            <td>@entry.Mapset.Artist – @entry.Mapset.Title <span class="muted">[@entry.Difficulty.Version]</span></td>
+                            <td class="num">@entry.Difficulty.Stars.ToString("0.00", CultureInfo.CurrentCulture)★</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+}
+
+@code {
+    private string _profileInput = "";
+    private string? _inputError;
+    private bool _hasCredentials;
+    private readonly HashSet<string> _scoreModes = [.. Ruleset.All];
+
+    protected override void OnInitialized()
+    {
+        _hasCredentials = Credentials.Load() is not null;
+        _profileInput = Settings.Load().LastProfile ?? "";
+        Session.LoadLatest();
+        Session.Changed += OnSessionChanged;
+    }
+
+    private async Task StartAsync()
+    {
+        if (!UserReference.TryParse(_profileInput, out var profile))
+        {
+            _inputError = "Enter a profile URL (osu.ppy.sh/users/…), a numeric id or a username.";
+            return;
+        }
+        _inputError = null;
+        Settings.Save(Settings.Load() with { LastProfile = _profileInput.Trim() });
+
+        var options = new HarvestOptions { ScoreModes = Ruleset.All.Where(_scoreModes.Contains).ToList() };
+        await Session.StartAsync(profile, options);
+    }
+
+    private void ToggleMode(string mode, bool on)
+    {
+        if (on) _scoreModes.Add(mode); else _scoreModes.Remove(mode);
+    }
+
+    private void OnSessionChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private static string ModeLabel(string mode) => mode switch
+    {
+        Ruleset.Osu => "osu!",
+        Ruleset.Taiko => "taiko",
+        Ruleset.Fruits => "catch",
+        Ruleset.Mania => "mania",
+        _ => mode,
+    };
+
+    private static string FormatDuration(TimeSpan t) =>
+        string.Create(CultureInfo.InvariantCulture, $"{(int)t.TotalHours}h{t.Minutes:00}m");
+
+    public void Dispose() => Session.Changed -= OnSessionChanged;
+}

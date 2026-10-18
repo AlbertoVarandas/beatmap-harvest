@@ -1,0 +1,179 @@
+@page "/settings"
+@inject ICredentialStore Credentials
+@inject IAccessTokenProvider Tokens
+@inject OsuApiOptions ApiOptions
+@inject SettingsStore Settings
+@inject AppPaths Paths
+
+<h1>Settings</h1>
+
+<section class="panel">
+    <h2>osu! API credentials</h2>
+    <p class="muted">
+        Each user uses their own OAuth application. It is free and takes a minute. The secret is stored
+        encrypted for your Windows account and is only ever sent to osu.ppy.sh.
+    </p>
+    <ol class="steps">
+        <li>Open your <a href="" @onclick="OpenOAuthPage" @onclick:preventDefault>osu! account settings</a> → <b>OAuth</b> → <b>New OAuth Application</b>.</li>
+        <li>Give it any name (e.g. <code>beatmap-harvest</code>) and leave the callback URL empty.</li>
+        <li>Click <b>Edit</b> on the new application, then copy the <b>Client ID</b> and, after <b>Show client secret</b>, the <b>Client Secret</b>.</li>
+    </ol>
+
+    <div class="grid-2">
+        <label class="field">
+            <span>Client ID</span>
+            <input class="input" inputmode="numeric" @bind="_clientId" @bind:event="oninput" disabled="@_busy" />
+        </label>
+        <label class="field">
+            <span>Client secret</span>
+            <input class="input" type="password" autocomplete="off" placeholder="@(_hasSaved ? "(saved – type to replace)" : "")"
+                   @bind="_clientSecret" @bind:event="oninput" disabled="@_busy" />
+        </label>
+    </div>
+
+    <div class="actions">
+        <button class="btn primary" disabled="@_busy" @onclick="TestAndSaveAsync">Test &amp; save</button>
+        @if (_hasSaved)
+        {
+            <button class="btn" disabled="@_busy" @onclick="Remove">Remove credentials</button>
+        }
+        @if (_busy)
+        {
+            <span class="spinner"></span>
+        }
+    </div>
+    @if (_credentialMessage is not null)
+    {
+        <div class="callout @(_credentialOk ? "ok" : "error")">@_credentialMessage</div>
+    }
+</section>
+
+<section class="panel">
+    <h2>Folders and downloads</h2>
+    <label class="field">
+        <span>Downloads folder</span>
+        <input class="input" placeholder="@Paths.DefaultDownloadsDirectory" @bind="_downloads" />
+    </label>
+    <label class="field">
+        <span>osu! Songs folder <small class="muted">(osu! stable; used to detect maps you already have)</small></span>
+        <input class="input" placeholder="@AppPaths.DefaultSongsDirectory" @bind="_songs" />
+    </label>
+    <label class="field narrow">
+        <span>Parallel downloads</span>
+        <input class="input" type="number" min="1" max="6" @bind="_parallel" />
+    </label>
+    <div class="actions">
+        <button class="btn primary" @onclick="SaveFolders">Save</button>
+        <button class="btn" @onclick="() => ShellLauncher.OpenFolder(Paths.Root)">Open data folder</button>
+    </div>
+    @if (_foldersMessage is not null)
+    {
+        <div class="callout ok">@_foldersMessage</div>
+    }
+</section>
+
+@code {
+    [Inject(Key = ServiceRegistration.OsuHttp)]
+    private HttpClient OsuHttp { get; set; } = default!;
+
+    private string _clientId = "";
+    private string _clientSecret = "";
+    private bool _hasSaved;
+    private bool _busy;
+    private bool _credentialOk;
+    private string? _credentialMessage;
+
+    private string? _downloads;
+    private string? _songs;
+    private int _parallel;
+    private string? _foldersMessage;
+
+    protected override void OnInitialized()
+    {
+        var saved = Credentials.Load();
+        _hasSaved = saved is not null;
+        _clientId = saved?.ClientId.ToString(CultureInfo.InvariantCulture) ?? "";
+
+        var settings = Settings.Load();
+        _downloads = settings.DownloadsDirectory;
+        _songs = settings.SongsDirectory;
+        _parallel = settings.MaxParallelDownloads;
+    }
+
+    private void OpenOAuthPage() => ShellLauncher.Open("https://osu.ppy.sh/home/account/edit#oauth");
+
+    private async Task TestAndSaveAsync()
+    {
+        _credentialMessage = null;
+        if (!int.TryParse(_clientId.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var id) || id <= 0)
+        {
+            Fail("The client id is a number.");
+            return;
+        }
+
+        // An empty secret field keeps the saved secret (it is never shown back).
+        var secret = _clientSecret.Trim();
+        if (secret.Length == 0 && Credentials.Load() is { } saved && saved.ClientId == id)
+            secret = saved.ClientSecret;
+        if (secret.Length == 0)
+        {
+            Fail("Paste the client secret.");
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var credentials = new OsuCredentials(id, secret);
+            await OsuTokenProvider.VerifyAsync(OsuHttp, credentials, ApiOptions.BaseAddress, CancellationToken.None);
+
+            Credentials.Save(credentials);
+            Tokens.Invalidate();
+            _hasSaved = true;
+            _clientSecret = "";
+            _credentialOk = true;
+            _credentialMessage = "Connected to the osu! API. Credentials saved.";
+        }
+        catch (OsuApiException ex)
+        {
+            Fail(ex.Message);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            Fail($"Could not reach osu.ppy.sh: {ex.Message}");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Remove()
+    {
+        Credentials.Clear();
+        Tokens.Invalidate();
+        _hasSaved = false;
+        _clientId = "";
+        _clientSecret = "";
+        _credentialOk = true;
+        _credentialMessage = "Credentials removed.";
+    }
+
+    private void Fail(string message)
+    {
+        _credentialOk = false;
+        _credentialMessage = message;
+    }
+
+    private void SaveFolders()
+    {
+        Settings.Save(Settings.Load() with
+        {
+            DownloadsDirectory = string.IsNullOrWhiteSpace(_downloads) ? null : _downloads.Trim(),
+            SongsDirectory = string.IsNullOrWhiteSpace(_songs) ? null : _songs.Trim(),
+            MaxParallelDownloads = Math.Clamp(_parallel, 1, 6),
+        });
+        _parallel = Math.Clamp(_parallel, 1, 6);
+        _foldersMessage = "Saved.";
+    }
+}

@@ -1,0 +1,17 @@
+<Project>
+  <!-- Central package management: every NuGet version lives here. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Keep WebView in step with the version WebView.Wpf depends on (its blazor.webview.js is embedded by the app). -->
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebView" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebView.Wpf" Version="10.0.110" />
+    <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.13" />
+
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+</Project>
