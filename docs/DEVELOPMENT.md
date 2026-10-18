@@ -20,6 +20,24 @@ dotnet publish src/BeatmapHarvest.App -p:PublishProfile=win-x64
 
 This produces `artifacts/publish/win-x64/BeatmapHarvest.exe`: one self-contained file of about 70 MB that needs no .NET install and no other files next to it.
 
+## CI and releases
+
+- **CI** (`.github/workflows/ci.yml`) builds and tests every pull request and every push to `main`.
+- **Release** (`.github/workflows/release.yml`) runs when a version tag is pushed. It tests, publishes the single-file exe with the tag's version, and creates a GitHub Release with `BeatmapHarvest.exe` and its SHA-256 checksum. The release notes are generated from the merged pull requests.
+
+To release, merge to `main`, then tag that commit:
+
+```bash
+git switch main
+git pull
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+A tag with a suffix (`v0.2.0-beta.1`) creates a pre-release, which the README's "latest release" link skips. The version in `Directory.Build.props` is only the default for local builds; releases take theirs from the tag.
+
+The exe is not code-signed yet, so Windows SmartScreen warns on first run. The release workflow has a marked place for the signing step, before the checksum.
+
 ## Architecture
 
 ```

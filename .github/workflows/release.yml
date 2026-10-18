@@ -1,0 +1,82 @@
+# Publish a GitHub Release with the single-file BeatmapHarvest.exe when a version tag is pushed.
+#   git tag v0.2.0 && git push origin v0.2.0        -> release
+#   git tag v0.2.0-beta.1 && git push origin v0.2.0-beta.1  -> pre-release (not shown as "latest")
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Read version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          if ($tag -notmatch '^v(?<core>\d+\.\d+\.\d+)(?:-(?<pre>[0-9A-Za-z.-]+))?$') {
+            Write-Error "Tag '$tag' is not a version like v1.2.3 or v1.2.3-beta.1"
+            exit 1
+          }
+          "version=$($tag.Substring(1))" >> $env:GITHUB_OUTPUT
+          "numeric=$($Matches.core).0" >> $env:GITHUB_OUTPUT
+          "prerelease=$([bool]$Matches.pre)".ToLowerInvariant() >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        run: dotnet test --configuration Release
+
+      - name: Publish single-file exe
+        run: >
+          dotnet publish src/BeatmapHarvest.App
+          -p:PublishProfile=win-x64
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:AssemblyVersion=${{ steps.version.outputs.numeric }}
+          -p:FileVersion=${{ steps.version.outputs.numeric }}
+
+      # Code signing goes here, before the checksum, once a certificate or signing service is set up
+      # (e.g. SignPath Foundation, Azure Artifact Signing or signtool with a certificate stored in secrets).
+
+      - name: Checksum
+        shell: pwsh
+        working-directory: artifacts/publish/win-x64
+        run: |
+          $hash = (Get-FileHash BeatmapHarvest.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  BeatmapHarvest.exe" | Out-File -Encoding ascii BeatmapHarvest.exe.sha256
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: BeatmapHarvest-${{ steps.version.outputs.version }}
+          path: artifacts/publish/win-x64/BeatmapHarvest.exe*
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ghArgs = @(
+            'release', 'create', $env:GITHUB_REF_NAME,
+            'artifacts/publish/win-x64/BeatmapHarvest.exe',
+            'artifacts/publish/win-x64/BeatmapHarvest.exe.sha256',
+            '--title', "Beatmap Harvest ${{ steps.version.outputs.version }}",
+            '--generate-notes'
+          )
+          if ('${{ steps.version.outputs.prerelease }}' -eq 'true') { $ghArgs += '--prerelease' }
+          gh @ghArgs
