@@ -1,132 +1,107 @@
-# beatmap-harvest
+# Beatmap Harvest
 
-A Windows desktop app that collects every beatmap linked to an osu! profile and downloads them as `.osz` files.
+Download every osu! beatmap you have ever played, in a few clicks.
 
-You give it a profile. It reads that profile's score lists and every map it has ever played through the **official osu! API v2**, merges everything into one list of beatmapsets, and shows a summary. You choose what to download, and it fetches the `.osz` files from public mirrors. It skips maps you already have and resumes after interruptions.
+Beatmap Harvest looks up an osu! profile and lists every map it has played or set a score on. You choose which ones you want, and it downloads them as `.osz` files ready for osu!. Maps you already have are skipped.
 
 > Beatmap Harvest is a community project. It is not affiliated with or endorsed by ppy Pty Ltd / osu!.
 
-## Status
+## Requirements
 
-| Area | State |
-|---|---|
-| OAuth (client credentials), rate-limited API client | ✅ done |
-| Harvest: best / firsts / pinned / recent scores + most played, merged per beatmapset | ✅ done |
-| Summary (modes, stars, total length, most played) | ✅ done |
-| Settings: credentials (encrypted), folders, parallel downloads | ✅ done |
-| Detection of maps already owned (`done.json`, downloads folder, osu! stable `Songs`) | ✅ done |
-| Selector: filters per difficulty, hand-picked mode, sort, search, audio previews, save/load selection | ✅ done |
-| Mirror downloads (`.part` → ZIP check → rename, mirror fallback, resume), progress and mirror stats | ✅ done |
-| Move downloads into osu! stable's `Songs` folder | ✅ done |
+- Windows 10 (version 1809 or newer) or Windows 11
+- An osu! account (free)
 
-## Using it
+Nothing else needs to be installed.
 
-### 1. Create your own osu! API credentials
+## Download
 
-Each user registers their own OAuth application. It is free, and the app never ships with anyone's secret.
+Download **`BeatmapHarvest.exe`** from the [latest release](https://github.com/AlbertoVarandas/beatmap-harvest/releases/latest) and run it. There is no installer; you can keep the file wherever you like.
 
-1. Go to your osu! account settings: <https://osu.ppy.sh/home/account/edit#oauth>, under **OAuth**.
-2. Click **New OAuth Application**. Use any name (e.g. `beatmap-harvest`) and leave the callback URL empty.
-3. Click **Edit** on the new application and copy the **Client ID** and the **Client Secret** (behind **Show client secret**).
-4. In Beatmap Harvest, open **Settings**, paste both values and click **Test & save**.
+Windows may show a "Windows protected your PC" warning the first time, because the app is not signed. Click **More info** → **Run anyway**.
 
-The credentials are stored encrypted with Windows DPAPI. Only your Windows account on that machine can read them, and the secret is only ever sent to `osu.ppy.sh`. Do not use the *Legacy API* key; this app uses API v2.
+## First-time setup: connect to osu!
 
-### 2. Harvest a profile
+Beatmap Harvest reads profiles through the official osu! API. To use the API, you create your own free "OAuth application" on the osu! website. This takes about a minute and only has to be done once.
 
-On **Harvest**, enter a profile URL (`https://osu.ppy.sh/users/123`), a numeric id or a username, then click **Start harvest**. The API allows about one request per second, so a large profile takes a minute or two.
+1. Open your [osu! account settings](https://osu.ppy.sh/home/account/edit#oauth) and scroll to **OAuth**.
+2. Click **New OAuth Application**.
+3. Type any name (for example `beatmap-harvest`), leave **Application Callback URLs** empty and click **Register application**.
+4. Click **Edit** on the new application. Copy the **Client ID**, then click **Show client secret** and copy the **Client Secret**.
+5. In Beatmap Harvest, open **Settings**, paste both values and click **Test & save**.
 
-### 3. Choose what to download
+Use the **OAuth** section, not *Legacy API*.
 
-**Select** lists every beatmapset of the last harvest. There are two ways to select:
+Your client secret works like a password: don't share it. Beatmap Harvest stores it encrypted, readable only by your Windows account, and only ever sends it to osu.ppy.sh. It never asks for your osu! password.
 
-- **By filters** (default): everything that passes the filters is selected. Mode, stars, length and your play count are checked per difficulty, so "mania, 4★+" only matches sets with a mania difficulty of at least 4★. Click a map to add or remove it by hand on top of the filters.
-- **Hand-picked**: only the maps you click are selected; the filters just narrow the list.
+## How to use
 
-Maps you already have (in `done.json`, the downloads folder or osu!'s `Songs` folder) are tagged *Have it* and skipped unless you untick **Skip maps I already have**. Difficulties that fail the filters are dimmed, and clicking a cover plays the song preview. **Save selection…** writes the filters and hand-picked maps to a JSON file you can load again later.
+### 1. Harvest a profile
 
-### 4. Download
+On **Harvest**, enter a profile link (`https://osu.ppy.sh/users/123`), a user id or a username, then click **Start harvest**.
 
-**Download N maps** starts the download and opens **Downloads**, which shows each map's state, the errors of the mirrors for maps that failed, and how each mirror is doing. The download keeps running if you switch pages. A cancelled or interrupted run resumes where it stopped. **Move to osu! Songs…** moves the downloaded `.osz` files into osu! stable's `Songs` folder (after asking), where osu! imports them on its next start.
+You will see a summary: how many maps were found, your plays, game modes, star range and your most played maps. A large profile takes a minute or two, because osu! limits how fast the app can ask for data.
 
-## Building
+### 2. Choose what to download
 
-Requirements: Windows 10 1809+ / 11 (WebView2 runtime, included in current Windows) and the [.NET 10 SDK](https://dotnet.microsoft.com/download).
+**Select** shows every map that was found. There are two ways to choose:
 
-```bash
-dotnet build
-dotnet test
-dotnet run --project src/BeatmapHarvest.App
-```
+- **By filters**: everything that matches the filters is selected. You can filter by game mode, stars, length, how many times you played a difficulty, map status and where the map was found (best scores, first places, most played…). Click a map to add or remove it on top of the filters.
+- **Hand-picked**: only the maps you click are selected.
 
-### Single `.exe`
+Some useful extras:
 
-```bash
-dotnet publish src/BeatmapHarvest.App -p:PublishProfile=win-x64
-```
+- Click a cover to hear a preview of the song.
+- Maps you already have are tagged **Have it** and skipped. To include them anyway, untick **Skip maps I already have**.
+- Use the search box to find a song, artist, mapper or difficulty.
+- **Save selection…** and **Load selection…** keep your filters and choices in a file for later.
 
-This produces `artifacts/publish/win-x64/BeatmapHarvest.exe`: one self-contained file of about 70 MB that needs no .NET install and no other files next to it.
+### 3. Download
 
-## Architecture
+Click **Download N maps**. The **Downloads** page shows the progress of each map. You can switch pages while it runs.
 
-```
-BeatmapHarvest.slnx
-├─ src/BeatmapHarvest.Core          net10.0 class library: all logic, no UI, no Windows APIs
-│  ├─ Osu/          API v2 models, OAuth token provider, rate-limited client (IOsuDataSource), profile input parser
-│  ├─ Harvesting/   ProfileHarvester (pagination), MapsetAggregator (merge), HarvestSummary
-│  ├─ Library/      OwnedMapsetScanner, DownloadLedger (done.json): what is already on disk
-│  ├─ Downloads/    BeatmapDownloader (mirrors, ZIP check, .part), DownloadRunner (parallel queue), SongsFolder
-│  ├─ Selection/    SelectorConfig, SelectionEngine (filters / custom modes), MapsetSort, SliderRange
-│  ├─ Display/      StarColor (osu!'s difficulty colour gradient)
-│  └─ Storage/      AppPaths, AtomicFile, settings and harvest stores
-├─ src/BeatmapHarvest.App           WPF window hosting a BlazorWebView (WebView2)
-│  ├─ Components/   Razor UI (layout, pages)
-│  ├─ Services/     DI setup, DPAPI credential store, HarvestSession / DownloadSession / SelectorState (state shared by pages), file dialogs
-│  └─ wwwroot/      HTML host page and CSS, embedded in the assembly
-└─ tests/BeatmapHarvest.Core.Tests  xUnit tests for the Core
-```
+If you stop the download or close the app, start it again later: maps that were already downloaded are skipped, so it continues where it stopped.
 
-Design rules:
+### 4. Add the maps to osu!
 
-- **Core knows nothing about the UI.** The app only composes services and renders state. A CLI or another UI could reuse Core unchanged.
-- **The data source is an interface** (`IOsuDataSource`). A proxy backend could replace direct API calls later without touching the harvesting logic.
-- **Everything written to disk is atomic** (`.tmp` + flush + rename). Unreadable JSON is moved to `.corrupt` rather than lost.
-- **Respect the API:** one request per second, the same request is retried on HTTP 429 (honouring `Retry-After`), and the token is refreshed once on 401.
-- **Package versions are central** in `Directory.Packages.props`. Shared build settings live in `Directory.Build.props`, and warnings are treated as errors.
+On **Downloads**, click **Move to osu! Songs…**. The next time osu! starts, it imports them.
 
-### Data flow
+You can also open the downloads folder (**Open folder**) and double-click the `.osz` files, or drag them onto the osu! window.
 
-```
-profile ─► osu! API v2 (scores + most played) ─► MapsetAggregator ─► beatmap_info.json + summary
-        ─► selection (filters / manual) ─► owned detection ─► mirrors (.part → .osz) ─► done.json ─► Songs (optional)
-```
+## Settings
 
-### Where data is stored
+- **Downloads folder**: where `.osz` files are saved.
+- **osu! Songs folder**: used to find maps you already have and as the destination of **Move to osu! Songs**. The default is the usual osu! install location.
+- **Parallel downloads**: how many maps download at the same time.
 
-Everything lives under `%LOCALAPPDATA%\BeatmapHarvest`:
+## FAQ
 
-| Path | Contents |
-|---|---|
-| `credentials.bin` | OAuth client id/secret, DPAPI-encrypted |
-| `settings.json` | folders, parallel downloads, mirrors |
-| `profiles/<user id>/beatmap_info.json` | last harvest of each profile |
-| `done.json` | ids of beatmapsets whose download finished |
-| `downloads/` | default download folder |
+**Why do I need to create an OAuth application?**
+It is how osu! lets third-party apps read public profile data. Each person uses their own, so no secret is shared inside the app.
 
-## Notes
+**Where are the maps downloaded from?**
+From public beatmap mirrors. Official osu! downloads require logging in to the website, and Beatmap Harvest never asks for your osu! password.
 
-- Official `.osz` downloads require a logged-in osu! session. This app downloads from public mirrors using only the beatmapset id and never asks for your osu! password or session cookie.
-- Detection of owned maps reads osu! **stable**'s `Songs` folder. osu!**lazer** stores files by hash, so it cannot be detected this way.
-- The `best` list returns at most 200 scores and `recent` only covers the last 24 hours. `most played` is what finds (almost) every map.
+**Some maps failed to download.**
+Mirrors don't always have every map, especially old or unranked ones. Try again later. Maps that already finished are not downloaded twice.
+
+**I use osu!lazer. Does it detect the maps I already have?**
+Not yet. Detection reads osu! stable's `Songs` folder, and lazer stores its files differently. You can still download maps and open the `.osz` files in lazer.
+
+**Why does it find fewer "best" scores than I have?**
+osu! only exposes your top 200 scores and the last 24 hours of recent plays. Most maps are found through your **most played** list, which includes every map you have played.
+
+**Where does the app keep its data?**
+In `%LOCALAPPDATA%\BeatmapHarvest`. **Settings → Open data folder** opens it. Deleting that folder resets the app.
+
+## Problems or ideas
+
+Open an [issue on GitHub](https://github.com/AlbertoVarandas/beatmap-harvest/issues).
 
 ## Acknowledgements
 
-The idea for this project came from [OSZsave](https://github.com/ByteWired9/OSZsave). Beatmap Harvest is a separate implementation written from scratch.
+The idea for this project came from [OSZsave](https://github.com/ByteWired9/OSZsave).
 
-## Third-party notices
-
-- `blazor.webview.js` from `Microsoft.AspNetCore.Components.WebView` is embedded in the executable (MIT, .NET Foundation).
-- osu! is a trademark of ppy Pty Ltd. Beatmaps belong to their respective creators.
+osu! is a trademark of ppy Pty Ltd. Beatmaps belong to their respective creators.
 
 ## License
 
