@@ -4,9 +4,13 @@
     <nav class="sidebar">
         <div class="brand">beatmap<span>harvest</span></div>
         <NavLink class="nav-item" href="" Match="NavLinkMatch.All">Harvest</NavLink>
+        <NavLink class="nav-item" href="select">Select</NavLink>
+        <NavLink class="nav-item" href="downloads">Downloads</NavLink>
         <NavLink class="nav-item" href="settings">Settings</NavLink>
     </nav>
     <main class="content">
-        @Body
+        <div class="page">
+            @Body
+        </div>
     </main>
 </div>

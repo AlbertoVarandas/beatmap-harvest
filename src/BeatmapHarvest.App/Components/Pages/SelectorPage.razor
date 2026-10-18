@@ -1,0 +1,480 @@
+@page "/select"
+@using System.Text.Json
+@using BeatmapHarvest.Core.Json
+@implements IDisposable
+@inject HarvestSession Harvest
+@inject SelectorState State
+@inject DownloadSession Downloads
+@inject DownloadLedger Ledger
+@inject SettingsStore Settings
+@inject AppPaths Paths
+@inject NavigationManager Nav
+
+<div class="select-page">
+<div class="panel-head">
+    <h1>Select maps</h1>
+    @if (_result is not null)
+    {
+        <div class="actions">
+            <button class="btn small" @onclick="SaveConfig">Save selection…</button>
+            <button class="btn small" @onclick="LoadConfig">Load selection…</button>
+        </div>
+    }
+</div>
+
+@if (_result is null)
+{
+    <p class="muted">Choose which beatmapsets of a harvested profile to download.</p>
+    <div class="callout warn">No harvest yet. <a href="">Harvest a profile</a> first.</div>
+}
+else if (_owned is null)
+{
+    <p class="muted">@_result.Username · @_mapsets.Count beatmapsets</p>
+    <div class="actions"><span class="spinner"></span> Checking which maps you already have…</div>
+}
+else
+{
+    <p class="muted">
+        @_result.Username · @_mapsets.Count beatmapsets · you already have @_ownedCount.
+        @(Config.SelectionMode == SelectionMode.Filters
+            ? "Everything that passes the filters is selected; click a map to add or remove it by hand."
+            : "Only the maps you click are selected; the filters just narrow the list.")
+    </p>
+
+    @if (_message is not null)
+    {
+        <div class="callout @(_messageOk ? "ok" : "error")">@_message</div>
+    }
+
+    <section class="panel filters">
+        <div class="filter-row">
+            <div class="segmented">
+                <button class="@(Config.SelectionMode == SelectionMode.Filters ? "on" : "")" @onclick="() => SwitchMode(SelectionMode.Filters)">By filters</button>
+                <button class="@(Config.SelectionMode == SelectionMode.Custom ? "on" : "")" @onclick="() => SwitchMode(SelectionMode.Custom)">Hand-picked</button>
+            </div>
+            @if (Config.SelectionMode == SelectionMode.Custom)
+            {
+                <button class="btn small" @onclick="SelectShown">Select all shown</button>
+                <button class="btn small" disabled="@(Config.Included.Count == 0)" @onclick="ClearManual">Clear</button>
+            }
+            else
+            {
+                <button class="btn small" disabled="@(Config.Included.Count + Config.Excluded.Count == 0)" @onclick="ClearManual">
+                    Reset hand-picked changes (@(Config.Included.Count + Config.Excluded.Count))
+                </button>
+            }
+            <label class="inline-field">
+                Sort
+                <select class="input small" @bind="Config.Sort" @bind:after="Refresh">
+                    @foreach (var sort in MapsetSort.All)
+                    {
+                        <option value="@sort">@SortLabel(sort)</option>
+                    }
+                </select>
+            </label>
+        </div>
+
+        <div class="filter-row">
+            <span class="filter-label">Mode</span>
+            <div class="chips">
+                @foreach (var mode in Ruleset.All)
+                {
+                    <span class="chip mode-@mode @(Filters.Modes.Contains(mode) ? "on" : "")" @onclick="() => ToggleIn(Filters.Modes, mode)">
+                        @Format.Mode(mode) <small>@_modeCounts.GetValueOrDefault(mode)</small>
+                    </span>
+                }
+            </div>
+            @if (Filters.Modes.Count == 0) { <small class="muted">all modes</small> }
+        </div>
+
+        <div class="grid-3">
+            <div class="range-field">
+                <span class="filter-label">Stars <b>@StarsLabel()</b></span>
+                <div class="dual-range">
+                    <input type="range" min="0" max="10" step="0.1" @bind="_starsLo" @bind:event="oninput" @bind:culture="CultureInfo.InvariantCulture" @bind:after="ApplyRanges" />
+                    <input type="range" min="0" max="10" step="0.1" @bind="_starsHi" @bind:event="oninput" @bind:culture="CultureInfo.InvariantCulture" @bind:after="ApplyRanges" />
+                </div>
+            </div>
+            <div class="range-field">
+                <span class="filter-label">Length <b>@LengthLabel()</b></span>
+                <div class="dual-range">
+                    <input type="range" min="0" max="600" step="5" @bind="_lengthLo" @bind:event="oninput" @bind:culture="CultureInfo.InvariantCulture" @bind:after="ApplyRanges" />
+                    <input type="range" min="0" max="600" step="5" @bind="_lengthHi" @bind:event="oninput" @bind:culture="CultureInfo.InvariantCulture" @bind:after="ApplyRanges" />
+                </div>
+            </div>
+            <div class="range-field">
+                <span class="filter-label">Your plays <small class="muted">(per difficulty)</small></span>
+                <div class="pair">
+                    <input class="input small" type="number" min="0" placeholder="min" @bind="_playsMin" @bind:after="ApplyRanges" />
+                    <span class="muted">–</span>
+                    <input class="input small" type="number" min="0" placeholder="max" @bind="_playsMax" @bind:after="ApplyRanges" />
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-row">
+            <span class="filter-label">Status</span>
+            <div class="chips">
+                @foreach (var status in _statuses)
+                {
+                    <span class="chip @(Filters.Statuses.Contains(status) ? "on" : "")" @onclick="() => ToggleIn(Filters.Statuses, status)">@Format.Status(status)</span>
+                }
+            </div>
+        </div>
+
+        <div class="filter-row">
+            <span class="filter-label">Found in</span>
+            <div class="chips">
+                @foreach (var source in Sources)
+                {
+                    <span class="chip @(Filters.Sources.Contains(source) ? "on" : "")" @onclick="() => ToggleIn(Filters.Sources, source)">@SourceLabel(source)</span>
+                }
+            </div>
+        </div>
+
+        <div class="filter-row">
+            <input class="input search" placeholder="Search artist, title, mapper or difficulty"
+                   @bind="Filters.Search" @bind:event="oninput" @bind:after="Refresh" />
+            <label class="check-field">
+                <input type="checkbox" @bind="Filters.SkipOwned" @bind:after="Refresh" /> Skip maps I already have
+            </label>
+            <label class="check-field">
+                <input type="checkbox" @bind="Filters.OnlySelected" @bind:after="Refresh" /> Show only selected
+            </label>
+        </div>
+    </section>
+
+    <div class="list-head muted">Showing @_visible.Count of @_mapsets.Count</div>
+
+    <div class="map-list">
+        <Virtualize Items="_visible" ItemSize="96" Context="m">
+            @{
+                var owned = _owned.Contains(m.Id);
+                var selected = SelectionEngine.IsSelected(m, Config, owned);
+            }
+            <div class="map-row" @key="m.Id">
+                <div class="map-card @(selected ? "selected" : "")" title="Click to @(selected ? "remove from" : "add to") the selection" @onclick="() => Toggle(m)">
+                    <div class="cover @(_playing == m.Id ? "playing" : "")" title="Play preview" @onclick="() => TogglePreview(m)" @onclick:stopPropagation>
+                        @if (m.Cover is not null)
+                        {
+                            <img src="@m.Cover" alt="" loading="lazy" />
+                        }
+                        @if (m.Preview is not null)
+                        {
+                            <span class="play">@(_playing == m.Id ? "■" : "▶")</span>
+                        }
+                    </div>
+                    <div class="map-body">
+                        <div class="map-title"><b>@m.Title</b> <span class="muted">by @m.Artist</span></div>
+                        <div class="map-meta">
+                            <span class="tag status-@(m.Status ?? "unknown")">@Format.Status(m.Status)</span>
+                            @if (owned)
+                            {
+                                <span class="tag have">Have it</span>
+                            }
+                            <span>mapped by @m.Creator</span>
+                            <span>@Format.Length(m.LengthSeconds)</span>
+                            @if (m.TotalPlays > 0)
+                            {
+                                <span>@m.TotalPlays plays</span>
+                            }
+                        </div>
+                        <div class="diffs">
+                            @foreach (var d in m.Difficulties.OrderBy(d => d.Mode, StringComparer.Ordinal).ThenBy(d => d.Stars))
+                            {
+                                <span class="diff @(SelectionEngine.MatchesDifficulty(d, Filters) ? "" : "dim")"
+                                      style="background:@StarColor.For(d.Stars);color:@StarColor.TextFor(d.Stars)"
+                                      title="@DiffTitle(d)">
+                                    <i class="dot mode-@d.Mode"></i>@Format.Stars(d.Stars)★
+                                </span>
+                            }
+                        </div>
+                    </div>
+                    <div class="check">@(selected ? "✓" : "")</div>
+                </div>
+            </div>
+        </Virtualize>
+    </div>
+
+    <footer class="page-footer">
+        <div class="footer-stats">
+            <span><b>@_selected.Count</b> @(_selected.Count == 1 ? "map" : "maps")</span>
+            <span><b>@_selectedDifficulties</b> difficulties</span>
+            <span><b>@Format.Duration(_selectedLength)</b> of music</span>
+        </div>
+        @if (Downloads.IsRunning)
+        {
+            <a href="downloads">A download is running…</a>
+        }
+        <button class="btn primary" disabled="@(_selected.Count == 0 || Downloads.IsRunning)" @onclick="StartDownload">
+            Download @_selected.Count @(_selected.Count == 1 ? "map" : "maps")
+        </button>
+    </footer>
+
+    @if (_previewUrl is not null)
+    {
+        <audio @key="_previewUrl" src="@_previewUrl" autoplay @onended="StopPreview"></audio>
+    }
+}
+</div>
+
+@code {
+    private static readonly SliderRange StarsTrack = new(0, 10);
+    private static readonly SliderRange LengthTrack = new(0, 600);
+    private static readonly string[] Sources =
+        [HarvestSource.Best, HarvestSource.Firsts, HarvestSource.Pinned, HarvestSource.Recent, HarvestSource.MostPlayed];
+    private static readonly string[] StatusOrder = ["ranked", "approved", "qualified", "loved", "pending", "wip", "graveyard"];
+
+    private HarvestResult? _result;
+    private IReadOnlyList<MapsetInfo> _mapsets = [];
+    private HashSet<long>? _owned;
+    private int _ownedCount;
+    private Dictionary<string, int> _modeCounts = [];
+    private List<string> _statuses = [];
+
+    private List<MapsetInfo> _visible = [];
+    private List<MapsetInfo> _selected = [];
+    private int _selectedDifficulties;
+    private TimeSpan _selectedLength;
+
+    private double _starsLo, _starsHi, _lengthLo, _lengthHi;
+    private int? _playsMin, _playsMax;
+
+    private long? _playing;
+    private string? _previewUrl;
+    private string? _message;
+    private bool _messageOk;
+
+    private SelectorConfig Config => State.Config;
+    private SelectionFilters Filters => State.Config.Filters;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Harvest.Changed += OnSessionChanged;
+        Downloads.Changed += OnSessionChanged;
+        Harvest.LoadLatest();
+        await LoadHarvestAsync();
+    }
+
+    private async Task LoadHarvestAsync()
+    {
+        _result = Harvest.Current;
+        if (_result is null)
+            return;
+
+        _mapsets = _result.Mapsets;
+        _modeCounts = Ruleset.All.ToDictionary(mode => mode, mode => _mapsets.Count(m => m.Difficulties.Any(d => d.Mode == mode)));
+        _statuses = _mapsets.Select(m => m.Status ?? "").Where(s => s.Length > 0).Distinct()
+            .OrderBy(s => Array.IndexOf(StatusOrder, s) is var i and >= 0 ? i : int.MaxValue).ThenBy(s => s, StringComparer.Ordinal)
+            .ToList();
+        SyncInputs();
+
+        _owned = null;
+        var settings = Settings.Load();
+        var downloads = settings.DownloadsDirectory ?? Paths.DefaultDownloadsDirectory;
+        var songs = settings.SongsDirectory ?? AppPaths.DefaultSongsDirectory;
+        try
+        {
+            _owned = await Task.Run(() => OwnedMapsets.Collect(Ledger, downloads, songs));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _owned = [.. Ledger.Snapshot()];
+            Show(false, $"Could not read the downloads or Songs folder ({ex.Message}). Only done.json is used to detect maps you have.");
+        }
+        _ownedCount = _mapsets.Count(m => _owned.Contains(m.Id));
+        Refresh();
+    }
+
+    /// <summary>Recomputes the shown list and the selection totals.</summary>
+    private void Refresh()
+    {
+        if (_owned is null)
+            return;
+
+        IEnumerable<MapsetInfo> shown = _mapsets;
+        if (Filters.OnlySelected)
+            shown = shown.Where(IsSelected);
+        else if (Config.SelectionMode == SelectionMode.Custom)
+            shown = shown.Where(m => SelectionEngine.Matches(m, Filters, _owned.Contains(m.Id)));
+        shown = shown.Where(m => SelectionEngine.MatchesSearch(m, Filters.Search));
+        _visible = MapsetSort.Apply(shown, Config.Sort).ToList();
+        UpdateTotals();
+    }
+
+    private void UpdateTotals()
+    {
+        var ids = SelectionEngine.SelectedIds(_mapsets, Config, _owned!).ToHashSet();
+        _selected = _mapsets.Where(m => ids.Contains(m.Id)).ToList();
+        var summary = HarvestSummary.From(_selected, top: 0);
+        _selectedDifficulties = summary.Difficulties;
+        _selectedLength = summary.TotalSongLength;
+    }
+
+    private bool IsSelected(MapsetInfo m) => SelectionEngine.IsSelected(m, Config, _owned!.Contains(m.Id));
+
+    // Does not re-filter the list, so a map does not vanish from under the cursor with "Show only selected".
+    private void Toggle(MapsetInfo m)
+    {
+        SelectionEngine.Toggle(m, Config, _owned!.Contains(m.Id));
+        UpdateTotals();
+    }
+
+    private void SwitchMode(SelectionMode mode)
+    {
+        SelectionEngine.SwitchMode(Config, mode, _mapsets, _owned!);
+        Refresh();
+    }
+
+    private void SelectShown()
+    {
+        Config.Included.UnionWith(_visible.Select(m => m.Id));
+        UpdateTotals();
+    }
+
+    private void ClearManual()
+    {
+        Config.Included.Clear();
+        Config.Excluded.Clear();
+        Refresh();
+    }
+
+    private void ToggleIn(HashSet<string> set, string value)
+    {
+        if (!set.Remove(value))
+            set.Add(value);
+        Refresh();
+    }
+
+    private void ApplyRanges()
+    {
+        Filters.Stars = StarsTrack.ToRange(_starsLo, _starsHi);
+        Filters.Length = LengthTrack.ToRange(_lengthLo, _lengthHi);
+        Filters.Plays = new NumericRange(_playsMin, _playsMax);
+        Refresh();
+    }
+
+    private void SyncInputs()
+    {
+        (_starsLo, _starsHi) = StarsTrack.FromRange(Filters.Stars);
+        (_lengthLo, _lengthHi) = LengthTrack.FromRange(Filters.Length);
+        _playsMin = Filters.Plays.Min is { } min ? (int)min : null;
+        _playsMax = Filters.Plays.Max is { } max ? (int)max : null;
+    }
+
+    private string StarsLabel() => Filters.Stars == NumericRange.Any
+        ? "any"
+        : $"{Filters.Stars.Min ?? 0:0.0}★ – {(Filters.Stars.Max is { } max ? $"{max:0.0}★" : "10★+")}";
+
+    private string LengthLabel() => Filters.Length == NumericRange.Any
+        ? "any"
+        : $"{Format.Length(Filters.Length.Min ?? 0)} – {(Filters.Length.Max is { } max ? Format.Length(max) : "10:00+")}";
+
+    private void TogglePreview(MapsetInfo m)
+    {
+        if (_playing == m.Id || m.Preview is null)
+        {
+            StopPreview();
+            return;
+        }
+        _playing = m.Id;
+        _previewUrl = m.Preview;
+    }
+
+    private void StopPreview()
+    {
+        _playing = null;
+        _previewUrl = null;
+    }
+
+    private void StartDownload()
+    {
+        StopPreview();
+        Downloads.Start(_selected);
+        Nav.NavigateTo("downloads");
+    }
+
+    private void SaveConfig()
+    {
+        var path = FileDialogs.Save("Save selection", $"{_result?.Username ?? "beatmaps"}-selection.json", FileDialogs.JsonFilter);
+        if (path is null)
+            return;
+        try
+        {
+            AtomicFile.WriteJson(path, Config);
+            Show(true, $"Saved to {path}.");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Show(false, $"Could not save: {ex.Message}");
+        }
+    }
+
+    private void LoadConfig()
+    {
+        var path = FileDialogs.Open("Load selection", FileDialogs.JsonFilter);
+        if (path is null)
+            return;
+        try
+        {
+            var loaded = JsonSerializer.Deserialize<SelectorConfig>(File.ReadAllText(path), JsonDefaults.Files);
+            if (loaded is null || loaded.BeatmapHarvestSelector != 1)
+            {
+                Show(false, "That file is not a Beatmap Harvest selection.");
+                return;
+            }
+            State.Config = loaded;
+            SyncInputs();
+            Refresh();
+            Show(true, $"Loaded {Path.GetFileName(path)}: {_selected.Count} maps selected.");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            Show(false, $"Could not load: {ex.Message}");
+        }
+    }
+
+    private void Show(bool ok, string message)
+    {
+        _messageOk = ok;
+        _message = message;
+    }
+
+    private void OnSessionChanged() => _ = InvokeAsync(async () =>
+    {
+        if (!Harvest.IsRunning && !ReferenceEquals(Harvest.Current, _result))
+            await LoadHarvestAsync();
+        StateHasChanged();
+    });
+
+    private static string DiffTitle(DifficultyInfo d) =>
+        $"{d.Version} · {Format.Mode(d.Mode)} · {Format.Stars(d.Stars)}★ · {Format.Length(d.LengthSeconds)}"
+        + (d.Plays is > 0 ? $" · {d.Plays} plays" : "");
+
+    private static string SortLabel(string sort) => sort switch
+    {
+        MapsetSort.Plays => "Most played",
+        MapsetSort.Artist => "Artist",
+        MapsetSort.Title => "Title",
+        MapsetSort.Stars => "Hardest",
+        MapsetSort.Length => "Longest",
+        MapsetSort.Mapper => "Mapper",
+        _ => sort,
+    };
+
+    private static string SourceLabel(string source) => source switch
+    {
+        HarvestSource.Best => "best scores",
+        HarvestSource.Firsts => "first places",
+        HarvestSource.Pinned => "pinned",
+        HarvestSource.Recent => "recent",
+        HarvestSource.MostPlayed => "most played",
+        _ => source,
+    };
+
+    public void Dispose()
+    {
+        Harvest.Changed -= OnSessionChanged;
+        Downloads.Changed -= OnSessionChanged;
+    }
+}

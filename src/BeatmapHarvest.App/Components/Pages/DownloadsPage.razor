@@ -1,0 +1,208 @@
+@page "/downloads"
+@implements IDisposable
+@inject DownloadSession Session
+
+<div class="downloads-page">
+<div class="panel-head">
+    <h1>Downloads</h1>
+    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(Session.Destination ?? Session.DownloadsDirectory)">Open folder</button>
+</div>
+<p class="muted">
+    Fetches the selected beatmapsets from public mirrors into <code>@(Session.Destination ?? Session.DownloadsDirectory)</code>.
+    Maps already in that folder or in <code>done.json</code> are skipped, so a stopped run resumes where it left off.
+</p>
+
+@if (Session.Items.Length == 0)
+{
+    <div class="callout warn">Nothing queued. <a href="select">Pick maps to download</a> first.</div>
+}
+else
+{
+    var total = Session.Items.Length;
+    var downloaded = Session.Count(DownloadItemState.Downloaded);
+    var skipped = Session.Count(DownloadItemState.Skipped);
+    var failed = Session.Count(DownloadItemState.Failed);
+
+    <section class="panel">
+        <div class="panel-head">
+            <h2>@(Session.IsRunning ? "Downloading" : "Finished") <small class="muted">@Session.Completed / @total</small></h2>
+            <div class="actions">
+                @if (Session.IsRunning)
+                {
+                    <span class="spinner"></span>
+                    <button class="btn" @onclick="Session.Cancel">Cancel</button>
+                }
+                else if (failed > 0)
+                {
+                    <button class="btn" @onclick="Session.RetryFailed">Retry @failed failed</button>
+                }
+            </div>
+        </div>
+        <div class="progress"><div style="width:@Percent(Session.Completed, total)"></div></div>
+        <div class="stats">
+            <div class="stat"><b>@downloaded</b><span>downloaded</span></div>
+            <div class="stat"><b>@skipped</b><span>already had</span></div>
+            <div class="stat"><b class="@(failed > 0 ? "error-text" : "")">@failed</b><span>failed</span></div>
+            <div class="stat"><b>@(total - Session.Completed)</b><span>remaining</span></div>
+        </div>
+        @if (Session.Error is not null)
+        {
+            <div class="callout warn">@Session.Error</div>
+        }
+    </section>
+
+    @if (failed > 0)
+    {
+        <section class="panel">
+            <h2>Failures</h2>
+            <table class="table">
+                <tbody>
+                    @foreach (var item in Session.Items.Where(i => i.State == DownloadItemState.Failed))
+                    {
+                        <tr>
+                            <td class="num"><a href="" @onclick="() => OpenSet(item.SetId)" @onclick:preventDefault>@item.SetId</a></td>
+                            <td>@item.Artist – @item.Title</td>
+                            <td class="errors">
+                                @foreach (var error in (item.Detail ?? "no mirror is enabled").Split("; "))
+                                {
+                                    <div>@error</div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+    }
+
+    <section class="panel">
+        <h2>Mirrors</h2>
+        @if (Session.MirrorStats.Count == 0)
+        {
+            <p class="muted">No mirror has been tried yet.</p>
+        }
+        else
+        {
+            <table class="table">
+                <thead><tr><th>Mirror</th><th class="num">OK</th><th class="num">Failed</th><th class="num">In a row</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var (name, stats) in Session.MirrorStats.OrderBy(s => s.Key, StringComparer.Ordinal))
+                    {
+                        <tr>
+                            <td>@name</td>
+                            <td class="num">@stats.Successes</td>
+                            <td class="num">@stats.Failures</td>
+                            <td class="num">@stats.ConsecutiveFailures</td>
+                            <td>
+                                @if (stats.ConsecutiveFailures >= Session.DisableMirrorAfter)
+                                {
+                                    <span class="tag failed">skipped until restart</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+
+    <section class="panel">
+        <h2>Queue</h2>
+        <div class="dl-list">
+            <Virtualize Items="Session.Items" ItemSize="34" Context="item">
+                <div class="dl-row">
+                    <span class="tag @StateClass(item.State)">@StateLabel(item.State)</span>
+                    <span class="dl-name">@item.Artist – @item.Title</span>
+                    <span class="muted dl-detail">@(item.State == DownloadItemState.Downloaded ? item.Detail : "")</span>
+                </div>
+            </Virtualize>
+        </div>
+    </section>
+}
+
+<section class="panel">
+    <h2>osu! Songs folder</h2>
+    <p class="muted">
+        osu! (stable) imports <code>.osz</code> files placed in its Songs folder the next time it starts.
+        This moves every <code>.osz</code> from the downloads folder to <code>@Session.SongsDirectory</code>.
+    </p>
+    @if (_confirmMove)
+    {
+        <div class="callout warn">
+            Move every .osz from <code>@Session.DownloadsDirectory</code> to <code>@Session.SongsDirectory</code>?
+            <div class="actions">
+                <button class="btn primary" disabled="@_moving" @onclick="MoveAsync">Move</button>
+                <button class="btn" disabled="@_moving" @onclick="() => _confirmMove = false">Cancel</button>
+                @if (_moving) { <span class="spinner"></span> }
+            </div>
+        </div>
+    }
+    else
+    {
+        <button class="btn" disabled="@Session.IsRunning" @onclick="() => { _confirmMove = true; _moveMessage = null; }">Move to osu! Songs…</button>
+    }
+    @if (_moveMessage is not null)
+    {
+        <div class="callout @(_moveOk ? "ok" : "error")">@_moveMessage</div>
+    }
+</section>
+</div>
+
+@code {
+    private bool _confirmMove;
+    private bool _moving;
+    private bool _moveOk;
+    private string? _moveMessage;
+
+    protected override void OnInitialized() => Session.Changed += OnSessionChanged;
+
+    private async Task MoveAsync()
+    {
+        _moving = true;
+        try
+        {
+            var result = await Session.MoveToSongsAsync();
+            _moveOk = true;
+            _moveMessage = result.Moved == 0 && result.AlreadyThere == 0
+                ? "There were no .osz files to move."
+                : $"Moved {result.Moved} {(result.Moved == 1 ? "map" : "maps")}." + (result.AlreadyThere > 0 ? $" {result.AlreadyThere} were already in Songs and were left in the downloads folder." : "");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _moveOk = false;
+            _moveMessage = $"Could not move the files: {ex.Message}";
+        }
+        finally
+        {
+            _moving = false;
+            _confirmMove = false;
+        }
+    }
+
+    private static void OpenSet(long id) =>
+        ShellLauncher.Open(string.Create(CultureInfo.InvariantCulture, $"https://osu.ppy.sh/beatmapsets/{id}"));
+
+    private static string Percent(int part, int total) =>
+        string.Create(CultureInfo.InvariantCulture, $"{(total == 0 ? 0 : 100.0 * part / total):0.#}%");
+
+    private static string StateClass(DownloadItemState state) => state switch
+    {
+        DownloadItemState.Downloaded => "downloaded",
+        DownloadItemState.Skipped => "skipped",
+        DownloadItemState.Failed => "failed",
+        _ => "queued",
+    };
+
+    private static string StateLabel(DownloadItemState state) => state switch
+    {
+        DownloadItemState.Queued => "queued",
+        DownloadItemState.Downloaded => "done",
+        DownloadItemState.Skipped => "had it",
+        DownloadItemState.Failed => "failed",
+        _ => state.ToString(),
+    };
+
+    private void OnSessionChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Session.Changed -= OnSessionChanged;
+}

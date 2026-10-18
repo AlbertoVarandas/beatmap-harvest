@@ -34,7 +34,7 @@
                 <label class="chip mode-@mode @(_scoreModes.Contains(mode) ? "on" : "")">
                     <input type="checkbox" checked="@_scoreModes.Contains(mode)" disabled="@Session.IsRunning"
                            @onchange="e => ToggleMode(mode, (bool)e.Value!)" />
-                    @ModeLabel(mode)
+                    @Format.Mode(mode)
                 </label>
             }
         </div>
@@ -62,7 +62,13 @@
 {
     <section class="panel">
         <h2>Progress</h2>
-        <pre class="log">@string.Join('\n', Session.Log.TakeLast(12))</pre>
+        @* Newest first: .log reverses the column, so it stays pinned to the newest line without JS. *@
+        <div class="log">
+            @foreach (var line in Session.Log.Reverse())
+            {
+                <div>@line</div>
+            }
+        </div>
     </section>
 }
 
@@ -78,14 +84,14 @@
             <div class="stat"><b>@s.Mapsets</b><span>beatmapsets</span></div>
             <div class="stat"><b>@s.Difficulties</b><span>difficulties</span></div>
             <div class="stat"><b>@s.Plays</b><span>plays</span></div>
-            <div class="stat"><b>@FormatDuration(s.TotalSongLength)</b><span>total song length</span></div>
+            <div class="stat"><b>@Format.Duration(s.TotalSongLength)</b><span>total song length</span></div>
             <div class="stat"><b>@s.MinStars.ToString("0.##", CultureInfo.CurrentCulture)–@s.MaxStars.ToString("0.##", CultureInfo.CurrentCulture)★</b><span>avg @s.AverageStars.ToString("0.##", CultureInfo.CurrentCulture)★</span></div>
         </div>
 
         <div class="chips">
             @foreach (var (mode, count) in s.DifficultiesByMode)
             {
-                <span class="chip mode-@mode on">@ModeLabel(mode) · @count</span>
+                <span class="chip mode-@mode on">@Format.Mode(mode) · @count</span>
             }
         </div>
 
@@ -142,18 +148,6 @@
     }
 
     private void OnSessionChanged() => _ = InvokeAsync(StateHasChanged);
-
-    private static string ModeLabel(string mode) => mode switch
-    {
-        Ruleset.Osu => "osu!",
-        Ruleset.Taiko => "taiko",
-        Ruleset.Fruits => "catch",
-        Ruleset.Mania => "mania",
-        _ => mode,
-    };
-
-    private static string FormatDuration(TimeSpan t) =>
-        string.Create(CultureInfo.InvariantCulture, $"{(int)t.TotalHours}h{t.Minutes:00}m");
 
     public void Dispose() => Session.Changed -= OnSessionChanged;
 }
