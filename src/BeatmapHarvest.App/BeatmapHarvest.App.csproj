@@ -8,11 +8,18 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>BeatmapHarvest.App</RootNamespace>
     <AssemblyName>BeatmapHarvest</AssemblyName>
+    <!-- Drawn by tools/make-icon.ps1 (every size, from 16 to 256 px). -->
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
 
     <!-- wwwroot is embedded in the assembly (see EmbeddedBlazorWebView) so the published .exe needs no loose files. -->
     <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
     <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The window's own icon (title bar, taskbar, Alt+Tab). -->
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <Content Remove="wwwroot\**" />

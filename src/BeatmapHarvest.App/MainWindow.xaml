@@ -5,6 +5,7 @@
         xmlns:local="clr-namespace:BeatmapHarvest.App"
         xmlns:components="clr-namespace:BeatmapHarvest.App.Components"
         Title="Beatmap Harvest"
+        Icon="Assets/app.ico"
         Width="1360" Height="860" MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen"
         Background="#1c1719">
