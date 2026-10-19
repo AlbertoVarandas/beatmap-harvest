@@ -14,8 +14,45 @@
     }
 </div>
 <p class="muted">
-    @L.Html("Your osu! collections. Changes only reach osu! when you click <b>Save to osu!</b> (with osu! closed).")
+    @if (_location.Target is CollectionsTarget.LazerViaStable or CollectionsTarget.LazerFolder)
+    {
+        @L.Html("Collections to bring into osu!lazer. Click <b>Save to osu!</b>, then import them in osu!lazer as shown below.")
+    }
+    else
+    {
+        @L.Html("Your osu! collections. Changes only reach osu! when you click <b>Save to osu!</b> (with osu! closed).")
+    }
 </p>
+
+@if (_location.Target is CollectionsTarget.LazerViaStable or CollectionsTarget.LazerFolder)
+{
+    <section class="panel lazer-steps">
+        <h2>@L["Getting them into osu!lazer"]</h2>
+        <p class="muted">
+            @L["osu!lazer keeps its collections in its own database, which Beatmap Harvest never changes: a mistake there could cost you your whole lazer library. Instead, the collections are saved in the classic osu! format, which osu!lazer imports itself."]
+        </p>
+        <ol class="steps">
+            <li>@L.Html("Make your collections here and click <b>Save to osu!</b>.")</li>
+            <li>@L.Html("In osu!lazer, open <b>Settings</b> and click <b>Run setup wizard</b>, then go to the step that imports from osu!stable.")</li>
+            <li>
+                @if (_location.Target == CollectionsTarget.LazerFolder)
+                {
+                    @L["As the osu!stable folder, choose:"]
+                }
+                else
+                {
+                    @L["As the osu!stable folder, keep your osu! (stable) folder:"]
+                }
+                <code class="selectable">@_location.Folder</code>
+                <button class="btn small" @onclick="CopyFolder">@L[_copied ? "Copied" : "Copy"]</button>
+            </li>
+            <li>@L.Html("Leave only <b>Collections</b> ticked and import.")</li>
+        </ol>
+        <p class="muted small-text">
+            @L["Maps that are not in osu!lazer yet appear in their collections as soon as you import them. Collections you made in osu!lazer itself are not shown here."]
+        </p>
+    </section>
+}
 
 @if (_error is not null)
 {
@@ -30,12 +67,12 @@
 {
     @if (_error is null)
     {
-        <StableOnlyNotice What="collections" />
+        <div class="callout warn">@L["osu! was not found on this PC."] <a href="settings">@L["Set its folder in Settings"]</a>.</div>
     }
 }
 else
 {
-    @if (Collections.IsDirty && CollectionsService.IsOsuRunning())
+    @if (Collections.IsDirty && Collections.SaveBlockedByOsu)
     {
         <div class="callout warn">@L["osu! is running. Close it before saving, or it will overwrite your changes when it exits."]</div>
     }
@@ -133,8 +170,17 @@ else
             _error = L.F("Could not read collection.db: {0}", ex.Message);
         }
         var snapshot = await Library.GetAsync();
-        foreach (var map in snapshot.Database?.Beatmaps ?? [])
+        foreach (var map in snapshot.Maps.Where(m => m.Md5.Length > 0))
             _local.TryAdd(map.Md5, map);
+    }
+
+    private CollectionsLocation _location => Collections.Location;
+    private bool _copied;
+
+    private void CopyFolder()
+    {
+        ClipboardHelper.Copy(_location.Folder);
+        _copied = true;
     }
 
     private void CreateNew()

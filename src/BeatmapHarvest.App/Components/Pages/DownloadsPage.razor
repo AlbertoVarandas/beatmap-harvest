@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject DownloadSession Session
 @inject OsuLibrary Library
+@inject LazerImportService Importer
 
 <div class="downloads-page">
 <div class="panel-head">
@@ -124,8 +125,40 @@ else
 {
     <section class="panel">
         <h2>@L["Add to osu!lazer"]</h2>
-        <p class="muted">@L["Open the downloads folder, select the maps and drag them onto the osu!lazer window (or double-click them)."]</p>
-        <button class="btn" @onclick="() => ShellLauncher.OpenFolder(Session.DownloadsDirectory)">@L["Open downloads folder"]</button>
+        <p class="muted">
+            @L["osu!lazer keeps its maps in its own database, which Beatmap Harvest never changes. Instead, the maps are handed to osu!lazer, which imports them itself (it opens if it is closed)."]
+        </p>
+        <div class="actions">
+            @if (Importer.IsRunning)
+            {
+                <span class="spinner"></span>
+                <span>@Importer.Status</span>
+                <button class="btn" @onclick="() => _importCts?.Cancel()">@L["Stop"]</button>
+            }
+            else
+            {
+                <button class="btn primary" disabled="@(_pending is not { Count: > 0 } || Session.IsRunning)" @onclick="ImportAsync">
+                    @L.F(_pending?.Count == 1 ? "Import {0} map into osu!lazer" : "Import {0} maps into osu!lazer", _pending?.Count ?? 0)
+                </button>
+                <button class="btn" @onclick="() => ShellLauncher.OpenFolder(Session.DownloadsDirectory)">@L["Open downloads folder"]</button>
+            }
+        </div>
+        @if (Importer.IsRunning || Importer.Sent > 0)
+        {
+            <div class="progress-row spaced-top">
+                <div class="progress"><div style="width:@Format.Percent(Importer.Total == 0 ? 0 : (double)Importer.Sent / Importer.Total)"></div></div>
+                <b>@Importer.Sent/@Importer.Total</b>
+            </div>
+        }
+        @if (!Importer.IsRunning && Importer.Status is not null && Importer.Error is null)
+        {
+            <div class="callout ok">@Importer.Status</div>
+        }
+        @if (Importer.Error is not null)
+        {
+            <div class="callout error">@Importer.Error</div>
+        }
+        <p class="muted small-text">@L["Maps already in osu!lazer are left out. You can also drag the files from the downloads folder onto the osu!lazer window."]</p>
     </section>
 }
 else
@@ -164,8 +197,41 @@ else
     private bool _moving;
     private bool _moveOk;
     private string? _moveMessage;
+    private IReadOnlyList<string>? _pending;
+    private CancellationTokenSource? _importCts;
 
-    protected override void OnInitialized() => Session.Changed += OnSessionChanged;
+    protected override async Task OnInitializedAsync()
+    {
+        Session.Changed += OnSessionChanged;
+        Importer.Changed += OnSessionChanged;
+        Library.Changed += OnLibraryChanged;
+        if (Library.Client == OsuClient.Lazer)
+            _pending = await Importer.PendingAsync();
+    }
+
+    private async Task ImportAsync()
+    {
+        if (_pending is not { Count: > 0 } pending)
+            return;
+        _importCts = new CancellationTokenSource();
+        try
+        {
+            await Importer.ImportAsync(pending, _importCts.Token);
+        }
+        finally
+        {
+            _importCts.Dispose();
+            _importCts = null;
+        }
+    }
+
+    // Finished downloads add files to import; an import changes what is already in lazer.
+    private void OnLibraryChanged() => _ = InvokeAsync(async () =>
+    {
+        if (Library.Client == OsuClient.Lazer && !Importer.IsRunning)
+            _pending = await Importer.PendingAsync();
+        StateHasChanged();
+    });
 
     private async Task MoveAsync()
     {
@@ -216,5 +282,10 @@ else
 
     private void OnSessionChanged() => _ = InvokeAsync(StateHasChanged);
 
-    public void Dispose() => Session.Changed -= OnSessionChanged;
+    public void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        Importer.Changed -= OnSessionChanged;
+        Library.Changed -= OnLibraryChanged;
+    }
 }

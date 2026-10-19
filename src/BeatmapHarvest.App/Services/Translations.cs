@@ -283,6 +283,37 @@ internal static class Translations
         ["Save on the Collections page to write it to osu!."] = "Guarda na página Coleções para escrever no osu!.",
         ["Stopped. Nothing was added."] = "Parado. Não foi adicionado nada.",
 
+        // osu!lazer: maps and collections are handed to lazer, never written into its database
+        ["osu!lazer keeps its maps in its own database, which Beatmap Harvest never changes. Instead, the maps are handed to osu!lazer, which imports them itself (it opens if it is closed)."] =
+            "O osu!lazer guarda os mapas na sua própria base de dados, que o Beatmap Harvest nunca altera. Em vez disso, os mapas são entregues ao osu!lazer, que os importa ele próprio (abre-se se estiver fechado).",
+        ["Import {0} map into osu!lazer"] = "Importar {0} mapa para o osu!lazer",
+        ["Import {0} maps into osu!lazer"] = "Importar {0} mapas para o osu!lazer",
+        ["Maps already in osu!lazer are left out. You can also drag the files from the downloads folder onto the osu!lazer window."] =
+            "Os mapas que já estão no osu!lazer ficam de fora. Também podes arrastar os ficheiros da pasta das transferências para a janela do osu!lazer.",
+        ["Sending batch {0} of {1} to osu!lazer…"] = "A enviar o lote {0} de {1} para o osu!lazer…",
+        ["Waiting for osu!lazer to open…"] = "À espera que o osu!lazer abra…",
+        ["Sent {0} maps to osu!lazer. It imports them in the background; see its notifications."] =
+            "Foram enviados {0} mapas para o osu!lazer. Ele importa-os em segundo plano; vê as notificações dele.",
+        ["Stopped. Maps already sent are still imported by osu!lazer."] = "Parado. Os mapas já enviados continuam a ser importados pelo osu!lazer.",
+        ["osu!lazer did not accept the maps. Make sure it is open and try again."] = "O osu!lazer não aceitou os mapas. Confirma que está aberto e tenta de novo.",
+        ["osu!lazer's program was not found, so the maps can't be sent to it. Drag them onto its window instead."] =
+            "O programa do osu!lazer não foi encontrado, por isso não é possível enviar-lhe os mapas. Arrasta-os para a janela dele.",
+        ["Collections to bring into osu!lazer. Click <b>Save to osu!</b>, then import them in osu!lazer as shown below."] =
+            "Coleções para levar para o osu!lazer. Clica em <b>Guardar no osu!</b> e depois importa-as no osu!lazer como se mostra abaixo.",
+        ["Getting them into osu!lazer"] = "Como as levar para o osu!lazer",
+        ["osu!lazer keeps its collections in its own database, which Beatmap Harvest never changes: a mistake there could cost you your whole lazer library. Instead, the collections are saved in the classic osu! format, which osu!lazer imports itself."] =
+            "O osu!lazer guarda as coleções na sua própria base de dados, que o Beatmap Harvest nunca altera: um erro aí podia custar-te a biblioteca inteira do lazer. Em vez disso, as coleções são guardadas no formato clássico do osu!, que o osu!lazer importa ele próprio.",
+        ["Make your collections here and click <b>Save to osu!</b>."] = "Cria aqui as tuas coleções e clica em <b>Guardar no osu!</b>.",
+        ["In osu!lazer, open <b>Settings</b> and click <b>Run setup wizard</b>, then go to the step that imports from osu!stable."] =
+            "No osu!lazer, abre as <b>Definições</b> e clica em <b>Run setup wizard</b>; depois avança até ao passo que importa do osu!stable.",
+        ["As the osu!stable folder, choose:"] = "Como pasta do osu!stable, escolhe:",
+        ["As the osu!stable folder, keep your osu! (stable) folder:"] = "Como pasta do osu!stable, mantém a pasta do teu osu! (stable):",
+        ["Leave only <b>Collections</b> ticked and import."] = "Deixa só <b>Collections</b> selecionado e importa.",
+        ["Maps that are not in osu!lazer yet appear in their collections as soon as you import them. Collections you made in osu!lazer itself are not shown here."] =
+            "Os mapas que ainda não estão no osu!lazer aparecem nas coleções assim que os importares. As coleções que criaste no próprio osu!lazer não aparecem aqui.",
+        ["Save on the Collections page, then import it in osu!lazer as explained there."] =
+            "Guarda na página Coleções e depois importa no osu!lazer como lá se explica.",
+
         // Skins
         ["The skins installed in osu!."] = "As skins instaladas no osu!.",
         ["No skins installed."] = "Não há skins instaladas.",

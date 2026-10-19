@@ -80,7 +80,7 @@ If you stop the download or close the app, start it again later: maps that were 
 
 ### 4. Add the maps to osu!
 
-- **osu!lazer**: on **Downloads**, click **Open downloads folder**, select the maps and drag them onto the osu!lazer window (or double-click them).
+- **osu!lazer**: on **Downloads**, click **Import N maps into osu!lazer**. Beatmap Harvest hands the downloaded maps to osu!lazer in batches of 50, and osu!lazer imports them itself (it opens if it is closed; watch its notifications). Maps already in lazer are left out. You can also drag the `.osz` files onto the osu!lazer window.
 - **osu! (stable)**: on **Downloads**, click **Move downloads…**. This moves the `.osz` files into osu!'s Songs folder; the next time osu! starts, it imports them.
 
 ## osu! and osu!lazer
@@ -91,15 +91,27 @@ Beatmap Harvest detects both osu!lazer and osu! (stable). If you have both, it u
 
 Beatmap Harvest only reads osu!'s files, so osu! can stay open. With osu!lazer it reads the beatmap files in lazer's storage; with osu! (stable) it reads `osu!.db` and the Songs folder.
 
-## Collections (osu! stable)
+> **About osu!lazer's database.** osu!lazer keeps maps, collections and skins in its own database (`client.realm`). Beatmap Harvest **never writes to it**: its format changes several times a year, and when osu!lazer finds a database it can't open, it sets it aside and starts an empty one, so a mistake there could cost you your whole lazer library. Maps and collections are always handed to osu!lazer through its own import, as described here.
 
-osu!lazer keeps collections and skins in its own database, which other apps can't change, so these two tools work with osu! (stable).
+## Collections
 
 **Collections** shows your osu! collections and lets you create, rename and delete them and remove maps from them. On **Beatmaps**, **Add to collection…** adds every difficulty of the selected maps to a collection. Maps not in osu! yet can be included too: Beatmap Harvest looks them up on osu! (about one per second), and they appear in the collection as soon as you download them.
 
 Changes stay in Beatmap Harvest until you click **Save to osu!**. Close osu! first, because osu! rewrites its collections when it exits. Each save keeps a copy of the previous file next to it (`collection.db.<date>.bak`).
 
+**With osu!lazer**, the collections are saved in the classic format and imported by osu!lazer:
+
+1. Make your collections and click **Save to osu!**.
+2. In osu!lazer, open **Settings**, click **Run setup wizard** and go to the step that imports from osu!stable.
+3. As the osu!stable folder, use the one shown on the **Collections** page: your osu! (stable) folder if you have it, otherwise a folder Beatmap Harvest prepares for this.
+4. Leave only **Collections** ticked and import.
+
+Collections made in osu!lazer itself are not shown in Beatmap Harvest.
+
 ## Skins (osu! stable)
+
+osu!lazer keeps its skins in its own database, so **Skins** works with osu! (stable).
+
 
 **Skins** lists the skins installed in osu! with their author and a preview of their main elements (cursor, hit circles, rank letters, mania notes…), and marks the one in use.
 
