@@ -26,11 +26,25 @@ public sealed class LazerRealmService
         library.Changed += Reset;
     }
 
+    /// <summary>Raised when the data should be read again (Reload, or after Beatmap Harvest changed lazer's collections).</summary>
+    public event Action? Changed;
+
     public Task<LazerRealmResult> GetAsync()
     {
         lock (_lock)
             return _result ??= Task.Run(Load);
     }
+
+    /// <summary>Reads osu!lazer's database again, e.g. after collections or skins were added in osu!lazer itself.</summary>
+    public void Reload()
+    {
+        Reset();
+        Changed?.Invoke();
+    }
+
+    /// <summary>Whether Beatmap Harvest can save collections straight into this osu!lazer (experimental option).</summary>
+    public LazerWriteCompatibility Compatibility(LazerRealmContent content) =>
+        LazerRealmWriter.Compatibility(content, _paths.LazerRealmCopyDirectory);
 
     private void Reset()
     {

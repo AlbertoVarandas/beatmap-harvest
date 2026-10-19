@@ -10,6 +10,25 @@ public sealed record LazerInstall(string DataDirectory, string? Executable)
 
     public string RealmFile => Path.Combine(DataDirectory, "client.realm");
 
+    /// <summary>The installed version, e.g. <c>2026.1005.0</c>, from the program's product version; null when unknown.</summary>
+    public string? Version => Executable is null ? null : ParseVersion(System.Diagnostics.FileVersionInfo.GetVersionInfo(Executable).ProductVersion);
+
+    /// <summary><c>2026.1005.0-lazer+9a10d…</c> → <c>2026.1005.0</c>.</summary>
+    public static string? ParseVersion(string? productVersion)
+    {
+        if (string.IsNullOrWhiteSpace(productVersion))
+            return null;
+        var end = productVersion.IndexOfAny(['-', '+', ' ']);
+        var version = end < 0 ? productVersion : productVersion[..end];
+        return System.Version.TryParse(version, out _) ? version : null;
+    }
+
+    /// <summary>Compares lazer versions (year.monthday.build); a version that can't be parsed counts as lowest.</summary>
+    public static int CompareVersions(string? a, string? b) =>
+        Comparer<System.Version?>.Default.Compare(
+            System.Version.TryParse(ParseVersion(a) ?? "", out var va) ? va : null,
+            System.Version.TryParse(ParseVersion(b) ?? "", out var vb) ? vb : null);
+
     /// <summary>ID of the skin in use (<c>Skin = …</c> in game.ini); null when unknown.</summary>
     public Guid? CurrentSkin
     {

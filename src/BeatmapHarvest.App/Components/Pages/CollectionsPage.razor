@@ -4,6 +4,7 @@
 @inject OsuLibrary Library
 @inject OsuProcessWatcher Processes
 @inject LazerRealmService LazerRealm
+@inject AppPaths Paths
 
 <div class="panel-head">
     <h1>@L["Collections"]</h1>
@@ -13,13 +14,20 @@
             <button class="btn" disabled="@(!Collections.IsDirty)" @onclick="Discard">@L["Discard changes"]</button>
             @* The hint sits on a wrapper: a disabled button gets no hover of its own. *@
             <span class="hint-wrap" title="@SaveBlockedReason()">
-                <button class="btn primary" disabled="@(SaveBlockedReason() is not null)" @onclick="Save">@L["Save to osu!"]</button>
+                <button class="btn primary" disabled="@(SaveBlockedReason() is not null)" @onclick="SaveAsync">
+                    @if (_saving) { <span class="spinner small"></span> }
+                    @L["Save to osu!"]
+                </button>
             </span>
         </div>
     }
 </div>
 <p class="muted">
-    @if (_location.Target is CollectionsTarget.LazerViaStable or CollectionsTarget.LazerFolder)
+    @if (_location.Target == CollectionsTarget.LazerDirect)
+    {
+        @L.Html("Collections to add to osu!lazer. <b>Save to osu!</b> puts them straight into osu!lazer (with osu!lazer closed); they then show up under <b>Already in osu!lazer</b>.")
+    }
+    else if (_location.Target is CollectionsTarget.LazerViaStable or CollectionsTarget.LazerFolder)
     {
         @L.Html("Collections to bring into osu!lazer. Click <b>Save to osu!</b>, then import them in osu!lazer as shown below.")
     }
@@ -57,6 +65,23 @@
         </p>
     </section>
 }
+else if (_location.Target == CollectionsTarget.LazerDirect)
+{
+    <section class="panel lazer-steps">
+        <h2>@L["Straight into osu!lazer"] <span class="tag downloaded-only">@L["experimental"]</span></h2>
+        <p class="muted">
+            @L["Beatmap Harvest changes a copy of osu!lazer's database, checks it, keeps a backup of the original and only then replaces it. Nothing is ever deleted: collections are added, and maps are added to collections with the same name."]
+        </p>
+        @if (_lazer?.Content is { } content && LazerRealm.Compatibility(content) is { Compatible: false } compatibility)
+        {
+            <div class="callout warn">@L[compatibility.Reason!]</div>
+        }
+        <p class="muted small-text">
+            @L["Backups of osu!lazer's database:"] <CopyText Value="@Paths.LazerBackupsDirectory" />
+            · <a href="settings">@L["Turn this off in Settings to use osu!lazer's setup wizard instead."]</a>
+        </p>
+    </section>
+}
 
 @if (_error is not null)
 {
@@ -76,7 +101,7 @@
 }
 else
 {
-    @switch (Collections.IsDirty ? Collections.SaveBlockedBy : null)
+    @switch (Collections.HasSomethingToSave ? Collections.SaveBlockedBy : null)
     {
         case OsuClient.Stable:
             <div class="callout warn">@L["osu! is running. Close it before saving, or it will overwrite your changes when it exits."]</div>
@@ -156,9 +181,13 @@ else
     }
 }
 
-@if (_location.Target is CollectionsTarget.LazerViaStable or CollectionsTarget.LazerFolder)
+@if (IsLazerTarget)
 {
-    <h2 class="spaced-top">@L["Already in osu!lazer"]</h2>
+    <div class="panel-head spaced-top">
+        <h2>@L["Already in osu!lazer"]</h2>
+        <button class="btn small" disabled="@(_lazer is null)" title="@L["Read osu!lazer's collections again, e.g. after making some in osu!lazer"]"
+                @onclick="LazerRealm.Reload">@L["Reload from osu!lazer"]</button>
+    </div>
     <p class="muted">@L["The collections osu!lazer has now, read from a copy of its database. Change them in osu!lazer itself."]</p>
     @if (_lazer is null)
     {
@@ -246,17 +275,40 @@ else
         var snapshot = await Library.GetAsync();
         foreach (var map in snapshot.Maps.Where(m => m.Md5.Length > 0))
             _local.TryAdd(map.Md5, map);
-        if (_location.Target is CollectionsTarget.LazerViaStable or CollectionsTarget.LazerFolder)
+        LazerRealm.Changed += OnLazerChanged;
+        await LoadLazerAsync();
+    }
+
+    private bool IsLazerTarget =>
+        _location.Target is CollectionsTarget.LazerViaStable or CollectionsTarget.LazerFolder or CollectionsTarget.LazerDirect;
+
+    private async Task LoadLazerAsync()
+    {
+        _lazer = null;
+        if (IsLazerTarget)
             _lazer = await LazerRealm.GetAsync();
     }
 
+    private void OnLazerChanged() => _ = InvokeAsync(async () =>
+    {
+        _lazer = null;
+        StateHasChanged();
+        await LoadLazerAsync();
+        StateHasChanged();
+    });
+
     private CollectionsLocation _location => Collections.Location;
+    private bool _saving;
+
     /// <summary>Why "Save to osu!" can't be clicked right now (shown on hover), or null when it can.</summary>
     private string? SaveBlockedReason() => Collections.SaveBlockedBy switch
     {
+        _ when _saving => L["Saving…"],
         OsuClient.Stable => L["osu! is running. Close it before saving, or it will overwrite your changes when it exits."],
         OsuClient.Lazer => L["osu!lazer is open. Close it before saving collections for it."],
-        _ when !Collections.IsDirty => L["Nothing to save: there are no changes."],
+        _ when !Collections.HasSomethingToSave => L["Nothing to save: there are no changes."],
+        _ when _location.Target == CollectionsTarget.LazerDirect && _lazer?.Content is null => L["Reading osu!lazer's database…"],
+        _ when _location.Target == CollectionsTarget.LazerDirect && LazerRealm.Compatibility(_lazer!.Content!) is { Compatible: false } c => L[c.Reason!],
         _ => null,
     };
 
@@ -307,20 +359,35 @@ else
         _confirmDelete = null;
     }
 
-    private void Save()
+    private async Task SaveAsync()
     {
         _error = null;
         _message = null;
+        _saving = true;
         try
         {
-            var backup = Collections.Save();
-            _message = backup is null
-                ? L["Saved to osu!."]
-                : L.F("Saved to osu!. The previous file was kept as {0}.", Path.GetFileName(backup));
+            var result = await Collections.SaveAsync();
+            if (result.Lazer is { } lazer)
+            {
+                _db = Collections.Get();
+                _open.Clear();
+                _message = L.F("Added to osu!lazer: {0} new collections and {1} updated ({2} maps). A backup of its database was kept ({3}).",
+                    lazer.Created, lazer.Updated, lazer.HashesAdded, Path.GetFileName(lazer.Backup));
+            }
+            else
+            {
+                _message = result.Backup is null
+                    ? L["Saved to osu!."]
+                    : L.F("Saved to osu!. The previous file was kept as {0}.", Path.GetFileName(result.Backup));
+            }
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             _error = L[ex.Message];
+        }
+        finally
+        {
+            _saving = false;
         }
     }
 
@@ -338,5 +405,6 @@ else
     {
         Collections.Changed -= OnChanged;
         Processes.Changed -= OnChanged;
+        LazerRealm.Changed -= OnLazerChanged;
     }
 }

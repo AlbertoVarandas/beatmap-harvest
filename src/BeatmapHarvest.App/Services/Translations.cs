@@ -332,6 +332,50 @@ internal static class Translations
         ["Maps that are not in osu!lazer yet appear in their collections as soon as you import them. Collections you made in osu!lazer itself are listed at the bottom of this page, read-only."] =
             "Os mapas que ainda não estão no osu!lazer aparecem nas coleções assim que os importares. As coleções que criaste no próprio osu!lazer aparecem no fim desta página, só para consulta.",
         ["Already in osu!lazer"] = "Já no osu!lazer",
+        ["Reload from osu!lazer"] = "Recarregar do osu!lazer",
+        ["Read osu!lazer's collections again, e.g. after making some in osu!lazer"] =
+            "Ler de novo as coleções do osu!lazer, por exemplo depois de criares algumas no osu!lazer",
+        ["Read osu!lazer's skins again, e.g. after adding some in osu!lazer"] =
+            "Ler de novo as skins do osu!lazer, por exemplo depois de adicionares algumas no osu!lazer",
+
+        // osu!lazer: collections saved straight into its database (experimental)
+        ["Collections to add to osu!lazer. <b>Save to osu!</b> puts them straight into osu!lazer (with osu!lazer closed); they then show up under <b>Already in osu!lazer</b>."] =
+            "Coleções para adicionar ao osu!lazer. <b>Guardar no osu!</b> põe-nas diretamente no osu!lazer (com o osu!lazer fechado); depois aparecem em <b>Já no osu!lazer</b>.",
+        ["Straight into osu!lazer"] = "Diretamente no osu!lazer",
+        ["experimental"] = "experimental",
+        ["Beatmap Harvest changes a copy of osu!lazer's database, checks it, keeps a backup of the original and only then replaces it. Nothing is ever deleted: collections are added, and maps are added to collections with the same name."] =
+            "O Beatmap Harvest altera uma cópia da base de dados do osu!lazer, confirma-a, guarda uma cópia de segurança do original e só então a substitui. Nunca se apaga nada: as coleções são acrescentadas, e os mapas são acrescentados às coleções com o mesmo nome.",
+        ["Backups of osu!lazer's database:"] = "Cópias de segurança da base de dados do osu!lazer:",
+        ["Turn this off in Settings to use osu!lazer's setup wizard instead."] = "Desliga isto nas Definições para usares antes o assistente do osu!lazer.",
+        ["Saving…"] = "A guardar…",
+        ["Added to osu!lazer: {0} new collections and {1} updated ({2} maps). A backup of its database was kept ({3})."] =
+            "Adicionado ao osu!lazer: {0} coleções novas e {1} atualizadas ({2} mapas). Foi guardada uma cópia de segurança da base de dados ({3}).",
+        ["osu!lazer's database changed while saving. Close osu!lazer and try again."] =
+            "A base de dados do osu!lazer mudou enquanto se guardava. Fecha o osu!lazer e tenta de novo.",
+        ["osu!lazer's database could not be read."] = "Não foi possível ler a base de dados do osu!lazer.",
+        ["osu!lazer's database could not be replaced; it was left as it was."] =
+            "Não foi possível substituir a base de dados do osu!lazer; ficou como estava.",
+        ["The change could not be made, so osu!lazer was left as it was."] = "Não foi possível fazer a alteração, por isso o osu!lazer ficou como estava.",
+        ["The changed database did not check out, so osu!lazer was left as it was."] =
+            "A base de dados alterada não passou na verificação, por isso o osu!lazer ficou como estava.",
+        ["This osu!lazer stores collections differently from what Beatmap Harvest knows. Update Beatmap Harvest, or use the setup wizard."] =
+            "Este osu!lazer guarda as coleções de forma diferente da que o Beatmap Harvest conhece. Atualiza o Beatmap Harvest ou usa o assistente.",
+        ["This osu!lazer stores its database in a format Beatmap Harvest does not know yet. Update Beatmap Harvest, or use the setup wizard."] =
+            "Este osu!lazer guarda a base de dados num formato que o Beatmap Harvest ainda não conhece. Atualiza o Beatmap Harvest ou usa o assistente.",
+        ["Installed version"] = "Versão instalada",
+        ["unknown"] = "desconhecida",
+        ["up to date"] = "atualizado",
+        ["update available: {0}"] = "atualização disponível: {0}",
+        ["osu!lazer updates itself when it starts."] = "O osu!lazer atualiza-se sozinho quando abre.",
+        ["Database"] = "Base de dados",
+        ["version {0}"] = "versão {0}",
+        ["could not be read"] = "não foi possível ler",
+        ["Collections straight into osu!lazer"] = "Coleções diretamente no osu!lazer",
+        ["compatible"] = "compatível",
+        ["not compatible"] = "não compatível",
+        ["Save collections straight into osu!lazer, without its setup wizard"] = "Guardar as coleções diretamente no osu!lazer, sem o assistente",
+        ["Beatmap Harvest then changes osu!lazer's database itself (only with osu!lazer closed, after checking a changed copy and keeping a backup). If osu!lazer ever fails to start afterwards, restore the backup or turn this off."] =
+            "O Beatmap Harvest passa a alterar ele próprio a base de dados do osu!lazer (só com o osu!lazer fechado, depois de confirmar uma cópia alterada e de guardar uma cópia de segurança). Se alguma vez o osu!lazer não abrir depois disso, repõe a cópia de segurança ou desliga esta opção.",
         ["The collections osu!lazer has now, read from a copy of its database. Change them in osu!lazer itself."] =
             "As coleções que o osu!lazer tem agora, lidas de uma cópia da sua base de dados. Altera-as no próprio osu!lazer.",
         ["osu!lazer has no collections yet."] = "O osu!lazer ainda não tem coleções.",

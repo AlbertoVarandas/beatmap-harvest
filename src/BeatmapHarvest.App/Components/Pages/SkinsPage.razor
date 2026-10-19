@@ -1,13 +1,18 @@
 @page "/skins"
 @inject OsuLibrary Library
 @inject LazerRealmService LazerRealm
+@implements IDisposable
 
 <h1>@L["Skins"]</h1>
 <p class="muted">@L["The skins installed in osu!."]</p>
 
 @if (Library.Client == OsuClient.Lazer)
 {
-    <p class="muted small-text">@L["Read from a copy of osu!lazer's database. Change skins in osu!lazer itself."]</p>
+    <div class="actions">
+        <span class="muted small-text">@L["Read from a copy of osu!lazer's database. Change skins in osu!lazer itself."]</span>
+        <button class="btn small" disabled="@(_lazer is null)" title="@L["Read osu!lazer's skins again, e.g. after adding some in osu!lazer"]"
+                @onclick="LazerRealm.Reload">@L["Reload from osu!lazer"]</button>
+    </div>
     @if (_lazer is null)
     {
         <p class="muted"><span class="spinner"></span> @L["Reading osu!lazer's database…"]</p>
@@ -126,12 +131,28 @@ else
     {
         if (Library.Client == OsuClient.Lazer)
         {
-            _currentLazerSkin = Library.Clients.Lazer?.CurrentSkin;
-            _lazer = await LazerRealm.GetAsync();
+            LazerRealm.Changed += OnLazerChanged;
+            await LoadLazerAsync();
             return;
         }
         _install = Library.Install;
         if (_install is not null)
             _skins = await Task.Run(() => SkinCatalog.List(_install.SkinsDirectory));
     }
+
+    private async Task LoadLazerAsync()
+    {
+        _currentLazerSkin = Library.Clients.Lazer?.CurrentSkin;
+        _lazer = await LazerRealm.GetAsync();
+    }
+
+    private void OnLazerChanged() => _ = InvokeAsync(async () =>
+    {
+        _lazer = null;
+        StateHasChanged();
+        await LoadLazerAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose() => LazerRealm.Changed -= OnLazerChanged;
 }

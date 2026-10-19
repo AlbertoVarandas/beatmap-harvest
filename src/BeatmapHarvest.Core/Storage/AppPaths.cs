@@ -31,6 +31,9 @@ public sealed class AppPaths(string root)
     /// <summary>Where a copy of osu!lazer's client.realm is read (and deleted right after).</summary>
     public string LazerRealmCopyDirectory => Path.Combine(Root, "lazer-realm-copy");
 
+    /// <summary>Copies of osu!lazer's client.realm taken right before Beatmap Harvest changed it (the last few).</summary>
+    public string LazerBackupsDirectory => Path.Combine(Root, "osu!lazer backups");
+
     /// <summary>Folder osu!lazer imports collections from ("Import from osu!stable") when osu! stable is not installed.</summary>
     public string LazerCollectionsDirectory => Path.Combine(Root, "osu!lazer collections");
     public string DefaultDownloadsDirectory => Path.Combine(Root, "downloads");
