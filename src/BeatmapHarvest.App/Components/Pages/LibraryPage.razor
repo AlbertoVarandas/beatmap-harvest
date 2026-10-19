@@ -4,57 +4,30 @@
 @inject ProfileLibrary Profiles
 @inject SelectorState Selector
 @inject NavigationManager Nav
+@inject LazerRealmService LazerRealm
 
 <div class="panel-head">
     <h1>@L["osu! library"]</h1>
-    <button class="btn small" disabled="@(_snapshot is null)" @onclick="Library.Reload">@L["Reload"]</button>
+    <button class="btn small" disabled="@(_snapshot is null || _reloading)" @onclick="ReloadAsync">@L["Reload"]</button>
 </div>
 <p class="muted">@L["The maps you already have in osu!, compared with the profiles you harvested."]</p>
 
-@if (_snapshot is null)
+@if (_snapshot is null || _reloading)
 {
-    <div class="actions"><span class="spinner"></span> @L["Reading your osu! library…"]</div>
+    <div class="page-loader"><span class="spinner"></span> @L["Reading your osu! library…"]</div>
 }
 else
 {
-    var clients = _snapshot.Clients;
-    var db = _snapshot.Database;
-
     @if (_snapshot.Error is not null)
     {
         <div class="callout warn">@_snapshot.Error</div>
     }
     <ClientNotice Snapshot="_snapshot" />
 
-    <section class="panel">
-        <h2>@Format.Client(_snapshot.Client)</h2>
-        @if (_snapshot.Client is null)
-        {
-            <div class="callout warn">@L["osu! was not found on this PC."] <a href="settings">@L["Set its folder in Settings"]</a>.</div>
-        }
-        else
-        {
-            <div class="detail-grid">
-                <div><span>@L["Beatmapsets"]</span><b>@_sets.Count</b></div>
-                <div><span>@L["Difficulties"]</span><b>@_snapshot.Maps.Count</b></div>
-                @if (!string.IsNullOrEmpty(db?.PlayerName))
-                {
-                    <div><span>@L["Player"]</span><b>@db.PlayerName</b></div>
-                }
-            </div>
-            <div class="actions">
-                @if (_snapshot.Client == OsuClient.Lazer)
-                {
-                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(clients.Lazer!.DataDirectory)">@L["Open osu!lazer folder"]</button>
-                }
-                else
-                {
-                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(clients.Stable!.Root)">@L["Open osu! folder"]</button>
-                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(_snapshot.SongsDirectory)">@L["Open Songs folder"]</button>
-                }
-            </div>
-        }
-    </section>
+    @if (_snapshot.Client is null)
+    {
+        <div class="callout warn">@L["osu! was not found on this PC."] <a href="settings">@L["Set its folder in Settings"]</a>.</div>
+    }
 
     @if (_profiles.Count > 0)
     {
@@ -90,7 +63,8 @@ else
             </div>
             <div class="local-list">
                 <Virtualize Items="Shown().ToList()" ItemSize="58" Context="set">
-                    <div class="local-row">
+                    @* Keyed so a recycled row never keeps the previous map's image state (hidden after a failed load). *@
+                    <div class="local-row" @key="set">
                         <div class="local-cover">
                             @* Online cover first; osu! has none for some maps (e.g. removed art), so fall back to the map's own background. *@
                             @if (set.SetId > 0 || set.Background is not null)
@@ -150,6 +124,8 @@ else
         _snapshot = null;
         var snapshot = await Library.GetAsync();
         var stable = snapshot.Client == OsuClient.Stable;
+        // osu!lazer: backgrounds come from its database (a copy), for maps whose cover is gone from the website.
+        var lazerBackgrounds = snapshot.Client == OsuClient.Lazer ? (await LazerRealm.GetAsync()).Content?.Backgrounds : null;
         _sets = await Task.Run(() => snapshot.Maps
             .GroupBy(b => b.BeatmapsetId > 0 ? b.BeatmapsetId.ToString(CultureInfo.InvariantCulture) : "folder:" + b.FolderName, StringComparer.Ordinal)
             .Select(g =>
@@ -157,7 +133,9 @@ else
                 var first = g.First();
                 return new LocalSet(first.BeatmapsetId, first.Artist, first.Title, first.Creator, g.Count(),
                     g.Select(b => b.Mode).Distinct().Order(StringComparer.Ordinal).ToList(),
-                    stable ? LocalBackground(snapshot.SongsDirectory, first) : null);
+                    stable ? LocalBackground(snapshot.SongsDirectory, first)
+                    : lazerBackgrounds?.GetValueOrDefault(first.BeatmapsetId) is { } hash ? OsuFilesHost.LazerUrl(LazerRealmReader.StorePath(hash))
+                    : null);
             })
             .OrderBy(s => s.Artist, StringComparer.CurrentCultureIgnoreCase)
             .ThenBy(s => s.Title, StringComparer.CurrentCultureIgnoreCase)
@@ -206,6 +184,20 @@ else
 
     private static string SetUrl(long setId) =>
         string.Create(CultureInfo.InvariantCulture, $"https://osu.ppy.sh/beatmapsets/{setId}");
+
+    private bool _reloading;
+
+    /// <summary>Reads the library again; the loader stays up for a moment even when that is instant, so the click shows.</summary>
+    private async Task ReloadAsync()
+    {
+        _reloading = true;
+        StateHasChanged();
+        var minimum = Task.Delay(600);
+        Library.Reload();
+        await Library.GetAsync();
+        await minimum;
+        _reloading = false;
+    }
 
     private void OnChanged() => _ = InvokeAsync(async () =>
     {

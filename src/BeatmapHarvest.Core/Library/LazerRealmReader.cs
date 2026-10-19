@@ -11,7 +11,11 @@ public sealed record LazerSkinFile(string Filename, string Hash);
 /// <param name="Protected">One of lazer's built-in skins (they have no files of their own).</param>
 public sealed record LazerSkin(Guid Id, string Name, string Creator, bool Protected, IReadOnlyList<LazerSkinFile> Files);
 
-public sealed record LazerRealmContent(IReadOnlyList<LazerCollectionInfo> Collections, IReadOnlyList<LazerSkin> Skins);
+/// <param name="Backgrounds">For each beatmapset id, the store hash of its background image (for maps without a cover online).</param>
+public sealed record LazerRealmContent(
+    IReadOnlyList<LazerCollectionInfo> Collections,
+    IReadOnlyList<LazerSkin> Skins,
+    IReadOnlyDictionary<long, string> Backgrounds);
 
 /// <summary>
 /// Reads collections and skins from osu!lazer's database. It never opens lazer's own client.realm: the file is copied to
@@ -43,7 +47,7 @@ public static class LazerRealmReader
             return WithoutSynchronizationContext(() =>
             {
                 using var realm = Realm.GetInstance(config);
-                return new LazerRealmContent(ReadCollections(realm), ReadSkins(realm));
+                return new LazerRealmContent(ReadCollections(realm), ReadSkins(realm), ReadBackgrounds(realm));
             });
         }
         catch (RealmException ex)
@@ -120,7 +124,45 @@ public static class LazerRealmReader
             .ToList();
     }
 
+    /// <summary>
+    /// BeatmapSet → first Beatmap → Metadata.BackgroundFile, looked up in the set's Files. Left empty if lazer's schema
+    /// no longer has these properties: the backgrounds are only a fallback image.
+    /// </summary>
+    private static Dictionary<long, string> ReadBackgrounds(Realm realm)
+    {
+        var backgrounds = new Dictionary<long, string>();
+        if (!HasProperties(realm, "BeatmapSet", "OnlineID", "Beatmaps", "Files", "DeletePending")
+            || !HasProperties(realm, "Beatmap", "Metadata")
+            || !HasProperties(realm, "BeatmapMetadata", "BackgroundFile"))
+            return backgrounds;
+
+        foreach (var set in realm.DynamicApi.All("BeatmapSet").ToList())
+        {
+            var id = set.DynamicApi.Get<int>("OnlineID");
+            if (id <= 0 || set.DynamicApi.Get<bool>("DeletePending"))
+                continue;
+            var background = set.DynamicApi.GetList<IRealmObject>("Beatmaps")
+                .Select(b => b.DynamicApi.Get<IRealmObject>("Metadata")?.DynamicApi.Get<string>("BackgroundFile"))
+                .FirstOrDefault(f => !string.IsNullOrEmpty(f));
+            if (background is null)
+                continue;
+            foreach (var usage in set.DynamicApi.GetList<IEmbeddedObject>("Files"))
+            {
+                if (string.Equals(usage.DynamicApi.Get<string>("Filename"), background, StringComparison.OrdinalIgnoreCase)
+                    && usage.DynamicApi.Get<IRealmObject>("File")?.DynamicApi.Get<string>("Hash") is { Length: > 0 } hash)
+                {
+                    backgrounds.TryAdd(id, hash);
+                    break;
+                }
+            }
+        }
+        return backgrounds;
+    }
+
     private static bool HasClass(Realm realm, string name) => realm.Schema.TryFindObjectSchema(name, out _);
+
+    private static bool HasProperties(Realm realm, string className, params string[] properties) =>
+        realm.Schema.TryFindObjectSchema(className, out var schema) && properties.All(p => schema.TryFindProperty(p, out _));
 
     /// <summary>Path of a file in lazer's store, relative to its <c>files</c> folder: a/ab/abcdef….</summary>
     public static string StorePath(string hash) => Path.Combine(hash[..1], hash[..2], hash);
