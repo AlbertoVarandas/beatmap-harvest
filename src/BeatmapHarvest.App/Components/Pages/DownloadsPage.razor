@@ -121,6 +121,37 @@ else
     </section>
 }
 
+@if (_folder.Length > 0)
+{
+    var waiting = _folder.Count(a => !a.InGame);
+    <section class="panel">
+        <h2>@L["In the downloads folder"] <small class="muted">@L.F(_folder.Length == 1 ? "{0} file · {1} not in osu! yet" : "{0} files · {1} not in osu! yet", _folder.Length, waiting)</small></h2>
+        <p class="muted small-text">
+            @L["Every map downloaded so far, including earlier sessions, until it is imported or moved."]
+            @if (Library.Client == OsuClient.Lazer)
+            {
+                @(" " + L["osu!lazer deletes each file from here once it has imported it."])
+            }
+        </p>
+        <div class="dl-list">
+            <Virtualize Items="_folder" ItemSize="34" Context="archive">
+                <div class="dl-row">
+                    @if (archive.InGame)
+                    {
+                        <span class="tag have">@L["in osu!"]</span>
+                    }
+                    else
+                    {
+                        <span class="tag downloaded-only">@L["to import"]</span>
+                    }
+                    <span class="dl-name" title="@archive.Path">@archive.Name</span>
+                    <span class="muted dl-detail">@Format.Megabytes(archive.Size) · @archive.Modified.ToString("g", L.Culture)</span>
+                </div>
+            </Virtualize>
+        </div>
+    </section>
+}
+
 @if (Library.Client == OsuClient.Lazer)
 {
     <section class="panel">
@@ -205,7 +236,54 @@ else
         Session.Changed += OnSessionChanged;
         Importer.Changed += OnSessionChanged;
         Library.Changed += OnLibraryChanged;
-        if (Library.Client == OsuClient.Lazer)
+        await LoadFolderAsync();
+        WatchFolder();
+    }
+
+    private FileSystemWatcher? _watcher;
+    private CancellationTokenSource? _reloadDelay;
+
+    // osu!lazer deletes each .osz once it has imported it, and finished downloads are renamed from .part to .osz:
+    // follow the folder so the list keeps up.
+    private void WatchFolder()
+    {
+        var directory = Session.DownloadsDirectory;
+        if (!Directory.Exists(directory))
+            return;
+        _watcher = new FileSystemWatcher(directory, "*.osz") { NotifyFilter = NotifyFilters.FileName };
+        _watcher.Created += OnFolderChanged;
+        _watcher.Deleted += OnFolderChanged;
+        _watcher.Renamed += OnFolderChanged;
+        _watcher.EnableRaisingEvents = true;
+    }
+
+    private void OnFolderChanged(object sender, FileSystemEventArgs e) => _ = InvokeAsync(async () =>
+    {
+        // Imports delete many files in a row; reload once they settle.
+        _reloadDelay?.Cancel();
+        _reloadDelay?.Dispose();
+        var delay = _reloadDelay = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(700, delay.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        await LoadFolderAsync();
+        StateHasChanged();
+    });
+
+    private DownloadedArchive[] _folder = [];
+
+    /// <summary>What is in the downloads folder, and (for osu!lazer) which of those files still need importing.</summary>
+    private async Task LoadFolderAsync()
+    {
+        var snapshot = await Library.GetAsync();
+        var directory = Session.DownloadsDirectory;
+        _folder = (await Task.Run(() => DownloadsFolder.List(directory, snapshot.Ownership.InGame))).ToArray();
+        if (Library.Client == OsuClient.Lazer && !Importer.IsRunning)
             _pending = await Importer.PendingAsync();
     }
 
@@ -228,8 +306,7 @@ else
     // Finished downloads add files to import; an import changes what is already in lazer.
     private void OnLibraryChanged() => _ = InvokeAsync(async () =>
     {
-        if (Library.Client == OsuClient.Lazer && !Importer.IsRunning)
-            _pending = await Importer.PendingAsync();
+        await LoadFolderAsync();
         StateHasChanged();
     });
 
@@ -287,5 +364,8 @@ else
         Session.Changed -= OnSessionChanged;
         Importer.Changed -= OnSessionChanged;
         Library.Changed -= OnLibraryChanged;
+        _watcher?.Dispose();
+        _reloadDelay?.Cancel();
+        _reloadDelay?.Dispose();
     }
 }

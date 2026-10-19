@@ -566,6 +566,6 @@ a.btn { text-decoration: none; display: inline-block; }
 .table .errors { color: var(--muted); font-size: 12.5px; }
 .dl-list { max-height: 420px; overflow-y: auto; }
 .dl-row { height: 34px; display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--border); padding: 0 4px; }
-.dl-row .tag { width: 70px; text-align: center; }
+.dl-row .tag { min-width: 70px; flex: none; white-space: nowrap; text-align: center; }
 .dl-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dl-detail { max-width: 40%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; }

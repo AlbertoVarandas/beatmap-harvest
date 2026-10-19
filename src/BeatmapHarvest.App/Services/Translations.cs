@@ -283,6 +283,14 @@ internal static class Translations
         ["osu!lazer is open. Close it before saving collections for it."] =
             "O osu!lazer está aberto. Fecha-o antes de guardar coleções para ele.",
         ["Close osu!lazer first."] = "Fecha primeiro o osu!lazer.",
+        ["In the downloads folder"] = "Na pasta das transferências",
+        ["to import"] = "por importar",
+        ["{0} file · {1} not in osu! yet"] = "{0} ficheiro · {1} por importar",
+        ["{0} files · {1} not in osu! yet"] = "{0} ficheiros · {1} por importar",
+        ["Every map downloaded so far, including earlier sessions, until it is imported or moved."] =
+            "Todos os mapas transferidos até agora, incluindo de sessões anteriores, até serem importados ou movidos.",
+        ["osu!lazer deletes each file from here once it has imported it."] =
+            "O osu!lazer apaga cada ficheiro daqui depois de o importar.",
         ["Import {0} map into osu!lazer"] = "Importar {0} mapa para o osu!lazer",
         ["Import {0} maps into osu!lazer"] = "Importar {0} mapas para o osu!lazer",
         ["Maps already in osu!lazer are left out. You can also drag the files from the downloads folder onto the osu!lazer window."] =

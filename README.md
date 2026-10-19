@@ -80,7 +80,7 @@ If you stop the download or close the app, start it again later: maps that were 
 
 ### 4. Add the maps to osu!
 
-- **osu!lazer**: on **Downloads**, click **Import N maps into osu!lazer**. Beatmap Harvest hands the downloaded maps to osu!lazer in batches of 50, and osu!lazer imports them itself (watch its notifications). It works with osu!lazer open; if it is closed, Beatmap Harvest opens it. Maps already in lazer are left out. You can also drag the `.osz` files onto the osu!lazer window.
+- **osu!lazer**: on **Downloads**, click **Import N maps into osu!lazer**. Beatmap Harvest hands the downloaded maps to osu!lazer in batches of 50, and osu!lazer imports them itself (watch its notifications). It works with osu!lazer open; if it is closed, Beatmap Harvest opens it. **Downloads** also lists every `.osz` still in the downloads folder, including ones from earlier sessions; osu!lazer deletes each file once it has imported it. Maps already in lazer are left out. You can also drag the `.osz` files onto the osu!lazer window.
 - **osu! (stable)**: on **Downloads**, click **Move downloads…**. This moves the `.osz` files into osu!'s Songs folder; the next time osu! starts, it imports them.
 
 ## osu! and osu!lazer
