@@ -4,7 +4,14 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>BeatmapHarvest.Core</RootNamespace>
+    <!-- Realm's Fody weaver is only needed for model classes; the dynamic API used here has none. -->
+    <DisableFody>true</DisableFody>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Only to read a copy of osu!lazer's client.realm through the dynamic API (no models of our own). -->
+    <PackageReference Include="Realm" />
+  </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="BeatmapHarvest.Core.Tests" />

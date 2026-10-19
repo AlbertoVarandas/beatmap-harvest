@@ -28,7 +28,8 @@ public sealed record CollectionsLocation(CollectionsTarget Target, string File, 
 /// database (never changed by this app), the file is the one lazer imports through "Import from osu!stable".
 /// Changes stay in memory until <see cref="Save"/>, which backs up the previous file first.
 /// </summary>
-public sealed class CollectionsService(OsuLibrary library, MapDetailsService details, AppPaths paths, TimeProvider time)
+public sealed class CollectionsService(
+    OsuLibrary library, MapDetailsService details, AppPaths paths, TimeProvider time, OsuProcessWatcher processes)
 {
     private CollectionDatabase? _db;
     private CollectionsLocation? _location;
@@ -40,9 +41,20 @@ public sealed class CollectionsService(OsuLibrary library, MapDetailsService det
 
     public CollectionsLocation Location => _location ??= Resolve();
 
-    /// <summary>osu! stable rewrites its collection.db when it exits, so saving into it needs it closed.</summary>
-    public bool SaveBlockedByOsu =>
-        Location.Target is CollectionsTarget.Stable or CollectionsTarget.LazerViaStable && OsuProcesses.IsRunning(OsuClient.Stable);
+    /// <summary>
+    /// The client that has to be closed before saving, if any: osu! stable rewrites its collection.db when it exits,
+    /// and collections for osu!lazer are only prepared while osu!lazer is closed.
+    /// </summary>
+    public OsuClient? SaveBlockedBy => BlockedBy(processes.StableRunning, processes.LazerRunning);
+
+    public bool SaveBlockedByOsu => SaveBlockedBy is not null;
+
+    private OsuClient? BlockedBy(bool stableRunning, bool lazerRunning) => Location.Target switch
+    {
+        CollectionsTarget.Stable or CollectionsTarget.LazerViaStable when stableRunning => OsuClient.Stable,
+        CollectionsTarget.LazerViaStable or CollectionsTarget.LazerFolder when lazerRunning => OsuClient.Lazer,
+        _ => null,
+    };
 
     /// <summary>The collections, loaded on first use. Null when no osu! is installed.</summary>
     public CollectionDatabase? Get()
@@ -151,11 +163,17 @@ public sealed class CollectionsService(OsuLibrary library, MapDetailsService det
     }
 
     /// <summary>Writes the collection.db. Returns the backup path, if there was a previous file.</summary>
-    /// <exception cref="InvalidOperationException">osu! stable is running, or no osu! is installed.</exception>
+    /// <exception cref="InvalidOperationException">A client that must be closed is open, or no osu! is installed.</exception>
     public string? Save()
     {
-        if (SaveBlockedByOsu)
-            throw new InvalidOperationException("Close osu! first: it overwrites collection.db when it exits.");
+        var (stableRunning, lazerRunning) = processes.Check();
+        switch (BlockedBy(stableRunning, lazerRunning))
+        {
+            case OsuClient.Stable:
+                throw new InvalidOperationException("Close osu! first: it overwrites collection.db when it exits.");
+            case OsuClient.Lazer:
+                throw new InvalidOperationException("Close osu!lazer first.");
+        }
         var db = Get() ?? throw new InvalidOperationException("osu! was not found on this PC.");
         var location = Location;
         if (location.Target == CollectionsTarget.LazerFolder)

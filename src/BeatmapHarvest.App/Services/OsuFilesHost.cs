@@ -16,6 +16,9 @@ public sealed class OsuFilesHost(SettingsStore settings)
     /// <summary>The Songs folder, which may live outside the osu! folder (BeatmapDirectory in osu!'s config).</summary>
     public const string SongsHostName = "songs.local";
 
+    /// <summary>osu!lazer's file store (its <c>files</c> folder), for the images of its skins.</summary>
+    public const string LazerHostName = "lazer.local";
+
     private CoreWebView2? _webView;
 
     /// <summary>Called once the WebView exists.</summary>
@@ -31,12 +34,14 @@ public sealed class OsuFilesHost(SettingsStore settings)
         var current = settings.Load();
         var install = OsuInstall.Find(current.OsuDirectory);
         var songs = current.SongsDirectory ?? install?.SongsDirectory;
+        var lazer = LazerInstall.Find(current.LazerDirectory);
         Application.Current.Dispatcher.Invoke(() =>
         {
             if (_webView is null)
                 return;
             Map(_webView, HostName, install?.Root);
             Map(_webView, SongsHostName, songs);
+            Map(_webView, LazerHostName, lazer?.FilesDirectory);
         });
     }
 
@@ -52,6 +57,9 @@ public sealed class OsuFilesHost(SettingsStore settings)
 
     /// <summary>URL of a file given relative to the Songs folder, e.g. <c>123 Artist - Title/bg.jpg</c>.</summary>
     public static string SongsUrl(string relativePath) => BuildUrl(SongsHostName, relativePath);
+
+    /// <summary>URL of a file in osu!lazer's store, given relative to its files folder (<c>a/ab/abcdef…</c>).</summary>
+    public static string LazerUrl(string relativePath) => BuildUrl(LazerHostName, relativePath);
 
     private static string BuildUrl(string host, string relativePath) =>
         $"https://{host}/" + string.Join('/', relativePath.Split('\\', '/').Select(Uri.EscapeDataString));

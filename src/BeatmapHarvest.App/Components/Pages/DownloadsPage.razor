@@ -3,6 +3,7 @@
 @inject DownloadSession Session
 @inject OsuLibrary Library
 @inject LazerImportService Importer
+@inject OsuProcessWatcher Processes
 
 <div class="downloads-page">
 <div class="panel-head">
@@ -126,8 +127,12 @@ else
     <section class="panel">
         <h2>@L["Add to osu!lazer"]</h2>
         <p class="muted">
-            @L["osu!lazer keeps its maps in its own database, which Beatmap Harvest never changes. Instead, the maps are handed to osu!lazer, which imports them itself (it opens if it is closed)."]
+            @L["osu!lazer keeps its maps in its own database, which Beatmap Harvest never changes. Instead, with osu!lazer closed, Beatmap Harvest opens it with the maps and osu!lazer imports them itself."]
         </p>
+        @if (Processes.LazerRunning && !Importer.IsRunning)
+        {
+            <div class="callout warn">@L["osu!lazer is open. Close it to import maps or prepare collections for it."]</div>
+        }
         <div class="actions">
             @if (Importer.IsRunning)
             {
@@ -137,7 +142,7 @@ else
             }
             else
             {
-                <button class="btn primary" disabled="@(_pending is not { Count: > 0 } || Session.IsRunning)" @onclick="ImportAsync">
+                <button class="btn primary" disabled="@(_pending is not { Count: > 0 } || Session.IsRunning || Processes.LazerRunning)" @onclick="ImportAsync">
                     @L.F(_pending?.Count == 1 ? "Import {0} map into osu!lazer" : "Import {0} maps into osu!lazer", _pending?.Count ?? 0)
                 </button>
                 <button class="btn" @onclick="() => ShellLauncher.OpenFolder(Session.DownloadsDirectory)">@L["Open downloads folder"]</button>
@@ -204,6 +209,7 @@ else
     {
         Session.Changed += OnSessionChanged;
         Importer.Changed += OnSessionChanged;
+        Processes.Changed += OnSessionChanged;
         Library.Changed += OnLibraryChanged;
         if (Library.Client == OsuClient.Lazer)
             _pending = await Importer.PendingAsync();
@@ -286,6 +292,7 @@ else
     {
         Session.Changed -= OnSessionChanged;
         Importer.Changed -= OnSessionChanged;
+        Processes.Changed -= OnSessionChanged;
         Library.Changed -= OnLibraryChanged;
     }
 }
