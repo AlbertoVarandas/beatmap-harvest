@@ -6,8 +6,8 @@ namespace BeatmapHarvest.App.Services;
 
 /// <summary>
 /// Sends downloaded .osz files to osu!lazer in batches (<c>osu!.exe a.osz b.osz …</c>), so lazer imports them itself.
-/// It only starts while lazer is closed: the first batch starts it and is imported on startup; the app waits for its
-/// window before sending the next batches, which lazer receives through its IPC channel.
+/// If lazer is open, every batch goes to it through its IPC channel. If it is closed, the first batch starts it and is
+/// imported on startup; the app waits for its window before sending the next batches the same way.
 /// </summary>
 public sealed class LazerImportService(OsuLibrary library, OsuProcessWatcher processes, Localizer l)
 {
@@ -43,14 +43,6 @@ public sealed class LazerImportService(OsuLibrary library, OsuProcessWatcher pro
             Changed?.Invoke();
             return;
         }
-        // Only started with osu!lazer closed: the first batch then opens it, and the rest follow while it starts up.
-        if (processes.Check().Lazer)
-        {
-            Error = l["Close osu!lazer first. Beatmap Harvest then opens it with the maps."];
-            Changed?.Invoke();
-            return;
-        }
-
         IsRunning = true;
         Sent = 0;
         Total = files.Count;
@@ -60,7 +52,7 @@ public sealed class LazerImportService(OsuLibrary library, OsuProcessWatcher pro
         try
         {
             var batches = LazerImport.Batches(files);
-            var lazerOpen = false;
+            var lazerOpen = processes.Check().Lazer;
             for (var i = 0; i < batches.Count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();

@@ -80,7 +80,7 @@ If you stop the download or close the app, start it again later: maps that were 
 
 ### 4. Add the maps to osu!
 
-- **osu!lazer**: on **Downloads**, click **Import N maps into osu!lazer**. Beatmap Harvest hands the downloaded maps to osu!lazer in batches of 50, and osu!lazer imports them itself (watch its notifications). **Close osu!lazer first**: the button stays locked while it is open, and Beatmap Harvest then opens it with the maps. Maps already in lazer are left out. You can also drag the `.osz` files onto the osu!lazer window.
+- **osu!lazer**: on **Downloads**, click **Import N maps into osu!lazer**. Beatmap Harvest hands the downloaded maps to osu!lazer in batches of 50, and osu!lazer imports them itself (watch its notifications). It works with osu!lazer open; if it is closed, Beatmap Harvest opens it. Maps already in lazer are left out. You can also drag the `.osz` files onto the osu!lazer window.
 - **osu! (stable)**: on **Downloads**, click **Move downloads…**. This moves the `.osz` files into osu!'s Songs folder; the next time osu! starts, it imports them.
 
 ## osu! and osu!lazer
@@ -91,7 +91,7 @@ Beatmap Harvest detects both osu!lazer and osu! (stable). If you have both, it u
 
 Beatmap Harvest only reads osu!'s files, so osu! can stay open. With osu!lazer it reads the beatmap files in lazer's storage; with osu! (stable) it reads `osu!.db` and the Songs folder.
 
-> **About osu!lazer's database.** osu!lazer keeps maps, collections and skins in its own database (`client.realm`). Beatmap Harvest **never writes to it**: its format changes several times a year, and when osu!lazer finds a database it can't open, it sets it aside and starts an empty one, so a mistake there could cost you your whole lazer library. Maps and collections are always handed to osu!lazer through its own import, as described here, and only while osu!lazer is closed. To show lazer's own collections and skins, Beatmap Harvest copies `client.realm` and reads the copy, which it deletes right after.
+> **About osu!lazer's database.** osu!lazer keeps maps, collections and skins in its own database (`client.realm`). Beatmap Harvest **never writes to it**: its format changes several times a year, and when osu!lazer finds a database it can't open, it sets it aside and starts an empty one, so a mistake there could cost you your whole lazer library. Maps and collections are always handed to osu!lazer through its own import, as described here. To show lazer's own collections and skins, Beatmap Harvest copies `client.realm` and reads the copy, which it deletes right after.
 
 ## Collections
 
