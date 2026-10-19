@@ -3,6 +3,8 @@
 @inject HarvestSession Session
 @inject SettingsStore Settings
 @inject OsuAccount Account
+@inject ProfileLibrary Profiles
+@inject NavigationManager Nav
 
 <section class="panel harvest-panel">
     <div class="folder-field">
@@ -10,8 +12,8 @@
                @bind="_profileInput" @bind:event="oninput" disabled="@Session.IsRunning" @onkeydown="OnKeyDown" />
         @if (Account.User is { } me)
         {
-            <button class="btn" type="button" disabled="@Session.IsRunning" title="@me.Username"
-                    @onclick="() => _profileInput = me.UserId.ToString(CultureInfo.InvariantCulture)">@L["My profile"]</button>
+            <button class="btn" type="button" disabled="@(Session.IsRunning && Profiles.Get(me.UserId) is null)" title="@me.Username"
+                    @onclick="() => OpenMyProfile(me.UserId)">@L["My profile"]</button>
         }
         @if (Session.IsRunning)
         {
@@ -90,6 +92,16 @@
         _inputError = null;
         Settings.Save(Settings.Load() with { LastProfile = _profileInput.Trim() });
         await Session.StartAsync(profile, new HarvestOptions { ScoreModes = Ruleset.All.Where(_scoreModes.Contains).ToList() });
+    }
+
+    /// <summary>Opens your own profile's tab; harvests it first if it is not there yet (the tab opens when it finishes).</summary>
+    private void OpenMyProfile(long userId)
+    {
+        var id = userId.ToString(CultureInfo.InvariantCulture);
+        if (Profiles.Get(userId) is not null)
+            Nav.NavigateTo($"beatmaps/{id}");
+        else
+            Session.Start(new UserReference(id, null));
     }
 
     private Task OnKeyDown(KeyboardEventArgs e) =>
