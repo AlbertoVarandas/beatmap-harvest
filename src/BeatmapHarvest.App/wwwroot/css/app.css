@@ -60,8 +60,10 @@ small { font-weight: normal; }
     flex-direction: column;
     gap: 4px;
 }
-.brand { display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 800; padding: 0 10px 18px; }
-.brand img { width: 26px; height: 26px; }
+/* Icon and name together must fit the 200px sidebar at any text scaling: smaller type, and the name never wraps or spills. */
+.brand { display: flex; align-items: center; gap: 7px; font-size: 16px; font-weight: 800; padding: 0 4px 18px; min-width: 0; }
+.brand img { width: 22px; height: 22px; flex-shrink: 0; }
+.brand-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .brand-name span { color: var(--pink); }
 .nav-item {
     color: var(--text);
