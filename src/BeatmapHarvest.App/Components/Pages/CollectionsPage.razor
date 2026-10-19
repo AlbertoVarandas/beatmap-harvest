@@ -11,7 +11,10 @@
     {
         <div class="actions">
             <button class="btn" disabled="@(!Collections.IsDirty)" @onclick="Discard">@L["Discard changes"]</button>
-            <button class="btn primary" disabled="@(!Collections.IsDirty || Collections.SaveBlockedByOsu)" @onclick="Save">@L["Save to osu!"]</button>
+            @* The hint sits on a wrapper: a disabled button gets no hover of its own. *@
+            <span class="hint-wrap" title="@SaveBlockedReason()">
+                <button class="btn primary" disabled="@(SaveBlockedReason() is not null)" @onclick="Save">@L["Save to osu!"]</button>
+            </span>
         </div>
     }
 </div>
@@ -45,8 +48,7 @@
                 {
                     @L["As the osu!stable folder, keep your osu! (stable) folder:"]
                 }
-                <code class="selectable">@_location.Folder</code>
-                <button class="btn small" @onclick="CopyFolder">@L[_copied ? "Copied" : "Copy"]</button>
+                <CopyText Value="@_location.Folder" />
             </li>
             <li>@L.Html("Leave only <b>Collections</b> ticked and import.")</li>
         </ol>
@@ -249,13 +251,14 @@ else
     }
 
     private CollectionsLocation _location => Collections.Location;
-    private bool _copied;
-
-    private void CopyFolder()
+    /// <summary>Why "Save to osu!" can't be clicked right now (shown on hover), or null when it can.</summary>
+    private string? SaveBlockedReason() => Collections.SaveBlockedBy switch
     {
-        ClipboardHelper.Copy(_location.Folder);
-        _copied = true;
-    }
+        OsuClient.Stable => L["osu! is running. Close it before saving, or it will overwrite your changes when it exits."],
+        OsuClient.Lazer => L["osu!lazer is open. Close it before saving collections for it."],
+        _ when !Collections.IsDirty => L["Nothing to save: there are no changes."],
+        _ => null,
+    };
 
     private void CreateNew()
     {

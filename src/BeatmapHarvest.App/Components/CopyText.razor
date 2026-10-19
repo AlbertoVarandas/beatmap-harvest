@@ -1,0 +1,35 @@
+@* Text the user may need elsewhere (a URL, a folder): clicking it copies it, with a short "Copied" notice. *@
+@implements IDisposable
+
+<span class="copy-text" title="@L["Click to copy"]" @onclick="CopyAsync"><code>@Value</code>@if (_copied) { <span class="copied">@L["Copied"]</span> }</span>
+
+@code {
+    [Parameter, EditorRequired] public string Value { get; set; } = "";
+
+    private bool _copied;
+    private CancellationTokenSource? _hide;
+
+    private async Task CopyAsync()
+    {
+        ClipboardHelper.Copy(Value);
+        _copied = true;
+        _hide?.Cancel();
+        _hide?.Dispose();
+        var hide = _hide = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(2000, hide.Token);
+            _copied = false;
+        }
+        catch (OperationCanceledException)
+        {
+            // Clicked again: that click's notice takes over.
+        }
+    }
+
+    public void Dispose()
+    {
+        _hide?.Cancel();
+        _hide?.Dispose();
+    }
+}
