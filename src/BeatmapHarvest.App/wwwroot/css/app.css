@@ -100,6 +100,7 @@ small { font-weight: normal; }
 .nav-item.disabled:hover { background: none; }
 
 .client-list { display: flex; gap: 8px; margin-bottom: 14px; }
+.spaced-top { margin-top: 14px; }
 .field > .segmented { align-self: flex-start; }
 .segmented button:disabled { opacity: .4; cursor: not-allowed; }
 

@@ -265,7 +265,7 @@ else
         {
             <a href="downloads">@L["A download is running…"]</a>
         }
-        @if (Library.Client == OsuClient.Stable)
+        @if (Library.Client is not null)
         {
             <button class="btn" disabled="@(_selected.Count == 0)" @onclick="() => _addToCollection = true">@L["Add to collection…"]</button>
         }

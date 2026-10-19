@@ -8,7 +8,7 @@
 
             @if (_db is null)
             {
-                <StableOnlyNotice What="collections" />
+                <div class="callout warn">@L["osu! was not found on this PC."] <a href="settings">@L["Set its folder in Settings"]</a>.</div>
             }
             else
             {
@@ -116,7 +116,9 @@
                        + (result.NotFound > 0
                            ? " " + L.F(_includeMissing ? "{0} maps were skipped (not found on osu!)." : "{0} maps were skipped (not in osu! yet).", result.NotFound)
                            : "")
-                       + " " + L["Save on the Collections page to write it to osu!."];
+                       + " " + L[Collections.Location.Target is CollectionsTarget.Stable
+                           ? "Save on the Collections page to write it to osu!."
+                           : "Save on the Collections page, then import it in osu!lazer as explained there."];
         }
         catch (OperationCanceledException)
         {
