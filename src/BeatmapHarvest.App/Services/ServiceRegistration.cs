@@ -70,6 +70,8 @@ public static class ServiceRegistration
         services.AddSingleton<OsuFilesHost>();
         services.AddSingleton<CollectionsService>();
         services.AddSingleton<LazerImportService>();
+        services.AddSingleton<LazerRealmService>();
+        services.AddSingleton<OsuProcessWatcher>();
         return services;
     }
 

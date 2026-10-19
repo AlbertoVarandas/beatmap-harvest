@@ -8,6 +8,8 @@
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebView" Version="10.0.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebView.Wpf" Version="10.0.110" />
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.13" />
+    <!-- Same version osu!lazer uses, to read copies of its client.realm (never the original). -->
+    <PackageVersion Include="Realm" Version="20.1.0" />
 
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />

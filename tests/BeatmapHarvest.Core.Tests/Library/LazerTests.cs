@@ -75,6 +75,18 @@ public class LazerTests
         Assert.Null(LazerInstall.Find(dir.Path)); // no client.realm in the default folder itself
     }
 
+    [Fact]
+    public void Reads_the_current_skin_from_game_ini()
+    {
+        using var dir = new TempDirectory();
+        var install = new LazerInstall(dir.Path, null);
+        Assert.Null(install.CurrentSkin);
+
+        File.WriteAllText(dir.File("game.ini"), "Ruleset = osu\nSkin = d94f147a-9e8a-4be5-8369-018638e7939c\n");
+
+        Assert.Equal(Guid.Parse("d94f147a-9e8a-4be5-8369-018638e7939c"), install.CurrentSkin);
+    }
+
     [Theory]
     [InlineData(true, true, null, OsuClient.Lazer)]
     [InlineData(true, true, OsuClient.Stable, OsuClient.Stable)]

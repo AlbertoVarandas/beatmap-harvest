@@ -2,6 +2,8 @@
 @implements IDisposable
 @inject CollectionsService Collections
 @inject OsuLibrary Library
+@inject OsuProcessWatcher Processes
+@inject LazerRealmService LazerRealm
 
 <div class="panel-head">
     <h1>@L["Collections"]</h1>
@@ -9,7 +11,7 @@
     {
         <div class="actions">
             <button class="btn" disabled="@(!Collections.IsDirty)" @onclick="Discard">@L["Discard changes"]</button>
-            <button class="btn primary" disabled="@(!Collections.IsDirty)" @onclick="Save">@L["Save to osu!"]</button>
+            <button class="btn primary" disabled="@(!Collections.IsDirty || Collections.SaveBlockedByOsu)" @onclick="Save">@L["Save to osu!"]</button>
         </div>
     }
 </div>
@@ -49,7 +51,7 @@
             <li>@L.Html("Leave only <b>Collections</b> ticked and import.")</li>
         </ol>
         <p class="muted small-text">
-            @L["Maps that are not in osu!lazer yet appear in their collections as soon as you import them. Collections you made in osu!lazer itself are not shown here."]
+            @L["Maps that are not in osu!lazer yet appear in their collections as soon as you import them. Collections you made in osu!lazer itself are listed at the bottom of this page, read-only."]
         </p>
     </section>
 }
@@ -72,9 +74,14 @@
 }
 else
 {
-    @if (Collections.IsDirty && Collections.SaveBlockedByOsu)
+    @switch (Collections.IsDirty ? Collections.SaveBlockedBy : null)
     {
-        <div class="callout warn">@L["osu! is running. Close it before saving, or it will overwrite your changes when it exits."]</div>
+        case OsuClient.Stable:
+            <div class="callout warn">@L["osu! is running. Close it before saving, or it will overwrite your changes when it exits."]</div>
+            break;
+        case OsuClient.Lazer:
+            <div class="callout warn">@L["osu!lazer is open. Close it to import maps or prepare collections for it."]</div>
+            break;
     }
 
     <section class="panel">
@@ -147,7 +154,71 @@ else
     }
 }
 
+@if (_location.Target is CollectionsTarget.LazerViaStable or CollectionsTarget.LazerFolder)
+{
+    <h2 class="spaced-top">@L["Already in osu!lazer"]</h2>
+    <p class="muted">@L["The collections osu!lazer has now, read from a copy of its database. Change them in osu!lazer itself."]</p>
+    @if (_lazer is null)
+    {
+        <p class="muted"><span class="spinner"></span> @L["Reading osu!lazer's database…"]</p>
+    }
+    else if (_lazer.Error is not null)
+    {
+        <div class="callout error">@_lazer.Error</div>
+    }
+    else if (_lazer.Content is not { Collections.Count: > 0 })
+    {
+        <p class="muted">@L["osu!lazer has no collections yet."]</p>
+    }
+    else
+    {
+        @foreach (var collection in _lazer.Content.Collections)
+        {
+            var installed = collection.Hashes.Count(h => _local.ContainsKey(h));
+            var open = _openLazer.Contains(collection.Id);
+            <section class="panel collection">
+                <div class="panel-head">
+                    <h2 class="clickable-title" @onclick="() => ToggleLazer(collection.Id)">
+                        @(open ? "▾" : "▸") @collection.Name
+                        <small class="muted">@L.F("{0} difficulties · {1} in osu!", collection.Hashes.Count, installed)</small>
+                    </h2>
+                    <span class="tag">@L["read-only"]</span>
+                </div>
+                @if (open)
+                {
+                    <div class="dl-list">
+                        @foreach (var hash in collection.Hashes)
+                        {
+                            <div class="dl-row">
+                                @if (_local.TryGetValue(hash, out var map))
+                                {
+                                    <span class="tag have">@L["in osu!"]</span>
+                                    <span class="dl-name">@map.Artist – @map.Title <span class="muted">[@map.Version]</span></span>
+                                }
+                                else
+                                {
+                                    <span class="tag">@L["not in osu!"]</span>
+                                    <span class="dl-name muted">@L.F("Difficulty {0}… (shows up once the map is in osu!)", hash[..Math.Min(8, hash.Length)])</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+        }
+    }
+}
+
 @code {
+    private LazerRealmResult? _lazer;
+    private readonly HashSet<Guid> _openLazer = [];
+
+    private void ToggleLazer(Guid id)
+    {
+        if (!_openLazer.Remove(id))
+            _openLazer.Add(id);
+    }
+
     private CollectionDatabase? _db;
     private Dictionary<string, LocalBeatmap> _local = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<OsuCollection> _open = [];
@@ -161,6 +232,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         Collections.Changed += OnChanged;
+        Processes.Changed += OnChanged;
         try
         {
             _db = Collections.Get();
@@ -172,6 +244,8 @@ else
         var snapshot = await Library.GetAsync();
         foreach (var map in snapshot.Maps.Where(m => m.Md5.Length > 0))
             _local.TryAdd(map.Md5, map);
+        if (_location.Target is CollectionsTarget.LazerViaStable or CollectionsTarget.LazerFolder)
+            _lazer = await LazerRealm.GetAsync();
     }
 
     private CollectionsLocation _location => Collections.Location;
@@ -257,5 +331,9 @@ else
 
     private void OnChanged() => _ = InvokeAsync(StateHasChanged);
 
-    public void Dispose() => Collections.Changed -= OnChanged;
+    public void Dispose()
+    {
+        Collections.Changed -= OnChanged;
+        Processes.Changed -= OnChanged;
+    }
 }

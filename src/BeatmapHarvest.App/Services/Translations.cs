@@ -241,12 +241,6 @@ internal static class Translations
         ["osu! page"] = "Página no osu!",
         ["Both osu! and osu!lazer are installed. Using <b>{0}</b>."] = "O osu! e o osu!lazer estão ambos instalados. A usar o <b>{0}</b>.",
         ["Choose another in Settings"] = "Escolher outro nas Definições",
-        ["osu!lazer keeps its collections inside its own database, which Beatmap Harvest can't change."] =
-            "O osu!lazer guarda as coleções na sua própria base de dados, que o Beatmap Harvest não consegue alterar.",
-        ["osu!lazer keeps its skins inside its own database, which Beatmap Harvest can't change."] =
-            "O osu!lazer guarda as skins na sua própria base de dados, que o Beatmap Harvest não consegue alterar.",
-        ["To use the ones from osu! (stable),"] = "Para usares as do osu! (stable),",
-        ["switch to it in Settings"] = "muda para ele nas Definições",
         ["Could not read osu!.db ({0}). Only the Songs folder is used."] = "Não foi possível ler o osu!.db ({0}). É usada só a pasta Songs.",
         ["Could not read the osu! library ({0})."] = "Não foi possível ler a biblioteca do osu! ({0}).",
         ["Could not read the downloads folder ({0})."] = "Não foi possível ler a pasta das transferências ({0}).",
@@ -284,8 +278,13 @@ internal static class Translations
         ["Stopped. Nothing was added."] = "Parado. Não foi adicionado nada.",
 
         // osu!lazer: maps and collections are handed to lazer, never written into its database
-        ["osu!lazer keeps its maps in its own database, which Beatmap Harvest never changes. Instead, the maps are handed to osu!lazer, which imports them itself (it opens if it is closed)."] =
-            "O osu!lazer guarda os mapas na sua própria base de dados, que o Beatmap Harvest nunca altera. Em vez disso, os mapas são entregues ao osu!lazer, que os importa ele próprio (abre-se se estiver fechado).",
+        ["osu!lazer keeps its maps in its own database, which Beatmap Harvest never changes. Instead, with osu!lazer closed, Beatmap Harvest opens it with the maps and osu!lazer imports them itself."] =
+            "O osu!lazer guarda os mapas na sua própria base de dados, que o Beatmap Harvest nunca altera. Em vez disso, com o osu!lazer fechado, o Beatmap Harvest abre-o com os mapas e o osu!lazer importa-os ele próprio.",
+        ["osu!lazer is open. Close it to import maps or prepare collections for it."] =
+            "O osu!lazer está aberto. Fecha-o para importar mapas ou preparar coleções para ele.",
+        ["Close osu!lazer first. Beatmap Harvest then opens it with the maps."] =
+            "Fecha primeiro o osu!lazer. O Beatmap Harvest abre-o depois com os mapas.",
+        ["Close osu!lazer first."] = "Fecha primeiro o osu!lazer.",
         ["Import {0} map into osu!lazer"] = "Importar {0} mapa para o osu!lazer",
         ["Import {0} maps into osu!lazer"] = "Importar {0} mapas para o osu!lazer",
         ["Maps already in osu!lazer are left out. You can also drag the files from the downloads folder onto the osu!lazer window."] =
@@ -309,14 +308,25 @@ internal static class Translations
         ["As the osu!stable folder, choose:"] = "Como pasta do osu!stable, escolhe:",
         ["As the osu!stable folder, keep your osu! (stable) folder:"] = "Como pasta do osu!stable, mantém a pasta do teu osu! (stable):",
         ["Leave only <b>Collections</b> ticked and import."] = "Deixa só <b>Collections</b> selecionado e importa.",
-        ["Maps that are not in osu!lazer yet appear in their collections as soon as you import them. Collections you made in osu!lazer itself are not shown here."] =
-            "Os mapas que ainda não estão no osu!lazer aparecem nas coleções assim que os importares. As coleções que criaste no próprio osu!lazer não aparecem aqui.",
+        ["Maps that are not in osu!lazer yet appear in their collections as soon as you import them. Collections you made in osu!lazer itself are listed at the bottom of this page, read-only."] =
+            "Os mapas que ainda não estão no osu!lazer aparecem nas coleções assim que os importares. As coleções que criaste no próprio osu!lazer aparecem no fim desta página, só para consulta.",
+        ["Already in osu!lazer"] = "Já no osu!lazer",
+        ["The collections osu!lazer has now, read from a copy of its database. Change them in osu!lazer itself."] =
+            "As coleções que o osu!lazer tem agora, lidas de uma cópia da sua base de dados. Altera-as no próprio osu!lazer.",
+        ["osu!lazer has no collections yet."] = "O osu!lazer ainda não tem coleções.",
+        ["read-only"] = "só leitura",
+        ["Reading osu!lazer's database…"] = "A ler a base de dados do osu!lazer…",
+        ["Could not read osu!lazer's database ({0})."] = "Não foi possível ler a base de dados do osu!lazer ({0}).",
         ["Save on the Collections page, then import it in osu!lazer as explained there."] =
             "Guarda na página Coleções e depois importa no osu!lazer como lá se explica.",
 
         // Skins
         ["The skins installed in osu!."] = "As skins instaladas no osu!.",
         ["No skins installed."] = "Não há skins instaladas.",
+        ["Read from a copy of osu!lazer's database. Change skins in osu!lazer itself."] =
+            "Lidas de uma cópia da base de dados do osu!lazer. Altera as skins no próprio osu!lazer.",
+        ["built-in"] = "incluída",
+        ["Comes with osu!lazer."] = "Vem com o osu!lazer.",
         ["Open Skins folder"] = "Abrir pasta Skins",
         ["{0} skins"] = "{0} skins",
         ["current"] = "atual",

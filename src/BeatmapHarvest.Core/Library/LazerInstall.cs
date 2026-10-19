@@ -8,6 +8,26 @@ public sealed record LazerInstall(string DataDirectory, string? Executable)
 {
     public string FilesDirectory => Path.Combine(DataDirectory, "files");
 
+    public string RealmFile => Path.Combine(DataDirectory, "client.realm");
+
+    /// <summary>ID of the skin in use (<c>Skin = …</c> in game.ini); null when unknown.</summary>
+    public Guid? CurrentSkin
+    {
+        get
+        {
+            var ini = Path.Combine(DataDirectory, "game.ini");
+            if (!File.Exists(ini))
+                return null;
+            foreach (var line in File.ReadLines(ini))
+            {
+                var eq = line.IndexOf('=', StringComparison.Ordinal);
+                if (eq > 0 && line[..eq].Trim().Equals("Skin", StringComparison.OrdinalIgnoreCase))
+                    return Guid.TryParse(line[(eq + 1)..].Trim(), out var id) ? id : null;
+            }
+            return null;
+        }
+    }
+
     public static string DefaultDataDirectory { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "osu");
 

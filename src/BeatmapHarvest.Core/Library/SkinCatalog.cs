@@ -40,6 +40,25 @@ public static class SkinCatalog
         var files = Directory.EnumerateFiles(directory).Select(Path.GetFileName).OfType<string>()
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        var previews = Previews(files, file => Path.GetRelativePath(skinsDirectory, Path.Combine(directory, file)));
+
+        return new SkinInfo(folder, ini.GetValueOrDefault("Name") is { Length: > 0 } name ? name : folder,
+            ini.GetValueOrDefault("Author"), ini.GetValueOrDefault("Version"), previews, files.Count);
+    }
+
+    /// <summary>Preview images of an osu!lazer skin, as paths in lazer's file store (relative to its files folder).</summary>
+    public static IReadOnlyList<SkinElement> LazerPreviews(LazerSkin skin)
+    {
+        var byName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var file in skin.Files)
+            byName.TryAdd(file.Filename, file.Hash);
+        return Previews(byName.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase), name => LazerRealmReader.StorePath(byName[name]));
+    }
+
+    /// <param name="files">Names of the skin's top-level files.</param>
+    /// <param name="pathOf">Where the UI finds a file, given its name.</param>
+    private static List<SkinElement> Previews(HashSet<string> files, Func<string, string> pathOf)
+    {
         var previews = new List<SkinElement>();
         foreach (var (label, names) in PreviewElements)
         {
@@ -48,14 +67,12 @@ public static class SkinCatalog
                 var file = new[] { $"{element}@2x.png", $"{element}.png", $"{element}@2x.jpg", $"{element}.jpg" }.FirstOrDefault(files.Contains);
                 if (file is not null)
                 {
-                    previews.Add(new SkinElement(label, Path.GetRelativePath(skinsDirectory, Path.Combine(directory, file))));
+                    previews.Add(new SkinElement(label, pathOf(file)));
                     break;
                 }
             }
         }
-
-        return new SkinInfo(folder, ini.GetValueOrDefault("Name") is { Length: > 0 } name ? name : folder,
-            ini.GetValueOrDefault("Author"), ini.GetValueOrDefault("Version"), previews, files.Count);
+        return previews;
     }
 
     /// <summary>Key/value pairs of the [General] section of skin.ini.</summary>
