@@ -4,8 +4,8 @@
 @inject HarvestSession Harvest
 @inject NavigationManager Nav
 
-<section class="panel">
-    <h2>@L["osu! account"] <small class="muted">@L["optional"]</small></h2>
+<SettingsSection Id="account" Title="@L["osu! account"]" Badge="@L["optional"]"
+                 Description="@L["Sign in to get your own profile and your friends. You approve the app on the osu! website; it never sees your password."]">
 
     @if (Account.User is { } user)
     {
@@ -24,7 +24,6 @@
     else
     {
         <p class="muted">
-            @L["Sign in to get your own profile and your friends. You approve the app on the osu! website; it never sees your password."]
             @L["If your OAuth application has no callback URL yet, add"] <CopyText Value="@OsuAccount.RedirectUri.ToString()" />
         </p>
         <div class="actions">
@@ -49,7 +48,7 @@
     {
         <div class="callout @(_ok ? "ok" : "error")">@_message</div>
     }
-</section>
+</SettingsSection>
 
 @code {
     [Parameter] public bool HasCredentials { get; set; }

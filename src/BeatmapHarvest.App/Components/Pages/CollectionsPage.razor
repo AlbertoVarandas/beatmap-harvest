@@ -37,10 +37,11 @@
     }
 </p>
 
+@* How the collections reach osu!lazer: open while there is nothing prepared yet, folded away once there is. *@
 @if (_location.Target is CollectionsTarget.LazerViaStable or CollectionsTarget.LazerFolder)
 {
-    <section class="panel lazer-steps">
-        <h2>@L["Getting them into osu!lazer"]</h2>
+    <details class="panel info-panel" open="@(_db is { Collections.Count: 0 })">
+        <summary>@L["Getting them into osu!lazer"]</summary>
         <p class="muted">
             @L["osu!lazer keeps its collections in its own database, which Beatmap Harvest never changes: a mistake there could cost you your whole lazer library. Instead, the collections are saved in the classic osu! format, which osu!lazer imports itself."]
         </p>
@@ -63,24 +64,24 @@
         <p class="muted small-text">
             @L["Maps that are not in osu!lazer yet appear in their collections as soon as you import them. Collections you made in osu!lazer itself are listed at the bottom of this page, read-only."]
         </p>
-    </section>
+    </details>
 }
 else if (_location.Target == CollectionsTarget.LazerDirect)
 {
-    <section class="panel lazer-steps">
-        <h2>@L["Straight into osu!lazer"] <span class="tag downloaded-only">@L["experimental"]</span></h2>
+    <details class="panel info-panel" open="@(_db is { Collections.Count: 0 })">
+        <summary>@L["Straight into osu!lazer"] <span class="tag downloaded-only">@L["experimental"]</span></summary>
         <p class="muted">
             @L["Beatmap Harvest changes a copy of osu!lazer's database, checks it, keeps a backup of the original and only then replaces it. Nothing is ever deleted: collections are added, and maps are added to collections with the same name."]
         </p>
-        @if (_lazer?.Content is { } content && LazerRealm.Compatibility(content) is { Compatible: false } compatibility)
-        {
-            <div class="callout warn">@L[compatibility.Reason!]</div>
-        }
         <p class="muted small-text">
             @L["Backups of osu!lazer's database:"] <CopyText Value="@Paths.LazerBackupsDirectory" />
             · <a href="settings">@L["Turn this off in Settings to use osu!lazer's setup wizard instead."]</a>
         </p>
-    </section>
+    </details>
+    @if (_lazer?.Content is { } content && LazerRealm.Compatibility(content) is { Compatible: false } compatibility)
+    {
+        <div class="callout warn">@L[compatibility.Reason!]</div>
+    }
 }
 
 @if (_error is not null)
@@ -91,15 +92,7 @@ else if (_location.Target == CollectionsTarget.LazerDirect)
 {
     <div class="callout ok">@_message</div>
 }
-
-@if (_db is null)
-{
-    @if (_error is null)
-    {
-        <div class="callout warn">@L["osu! was not found on this PC."] <a href="settings">@L["Set its folder in Settings"]</a>.</div>
-    }
-}
-else
+@if (_db is not null)
 {
     @switch (Collections.HasSomethingToSave ? Collections.SaveBlockedBy : null)
     {
@@ -110,135 +103,161 @@ else
             <div class="callout warn">@L["osu!lazer is open. Close it before saving collections for it."]</div>
             break;
     }
+}
 
-    <section class="panel">
-        <div class="folder-field">
-            <input class="input" placeholder="@L["New collection name"]" @bind="_newName" @bind:event="oninput" @onkeydown="OnNewKey" />
-            <button class="btn" disabled="@string.IsNullOrWhiteSpace(_newName)" @onclick="CreateNew">@L["Create"]</button>
-        </div>
-    </section>
+<div class="collections-columns @(IsLazerTarget ? "two" : "")">
+    <div class="collections-column">
+        @if (IsLazerTarget)
+        {
+            <div class="column-head">
+                <h2>@L["To add to osu!lazer"] @if (_db is not null) { <small class="muted">@_db.Collections.Count</small> }</h2>
+            </div>
+        }
 
-    @if (_db.Collections.Count == 0)
-    {
-        <p class="muted">@L["No collections yet."]</p>
-    }
+        @if (_db is null)
+        {
+            @if (_error is null)
+            {
+                <div class="callout warn">@L["osu! was not found on this PC."] <a href="settings">@L["Set its folder in Settings"]</a>.</div>
+            }
+        }
+        else
+        {
+            <div class="folder-field new-collection">
+                <input class="input" placeholder="@L["New collection name"]" @bind="_newName" @bind:event="oninput" @onkeydown="OnNewKey" />
+                <button class="btn" disabled="@string.IsNullOrWhiteSpace(_newName)" @onclick="CreateNew">@L["Create"]</button>
+            </div>
 
-    @foreach (var collection in _db.Collections)
-    {
-        var installed = collection.Hashes.Count(h => _local.ContainsKey(h));
-        var open = _open.Contains(collection);
-        <section class="panel collection">
-            <div class="panel-head">
-                @if (_renaming == collection)
-                {
-                    <div class="folder-field grow">
-                        <input class="input" @bind="_renameText" @bind:event="oninput" @onkeydown="e => OnRenameKey(e, collection)" />
-                        <button class="btn small" @onclick="() => FinishRename(collection)">OK</button>
-                    </div>
-                }
-                else
-                {
-                    <h2 class="clickable-title" @onclick="() => ToggleOpen(collection)">
-                        @(open ? "▾" : "▸") @collection.Name
-                        <small class="muted">@L.F("{0} difficulties · {1} in osu!", collection.Hashes.Count, installed)</small>
-                    </h2>
-                    <div class="actions">
-                        <button class="btn small" @onclick="() => StartRename(collection)">@L["Rename"]</button>
-                        @if (_confirmDelete == collection)
+            @if (_db.Collections.Count == 0)
+            {
+                <p class="muted empty-note">@L["No collections yet."]</p>
+            }
+
+            @foreach (var collection in _db.Collections)
+            {
+                var installed = collection.Hashes.Count(h => _local.ContainsKey(h));
+                var open = _open.Contains(collection);
+                <section class="panel collection @(open ? "open" : "")">
+                    <div class="collection-head">
+                        @if (_renaming == collection)
                         {
-                            <button class="btn small primary" @onclick="() => Delete(collection)">@L["Delete"]</button>
-                            <button class="btn small" @onclick="() => _confirmDelete = null">@L["Cancel"]</button>
+                            <div class="folder-field grow">
+                                <input class="input" @bind="_renameText" @bind:event="oninput" @onkeydown="e => OnRenameKey(e, collection)" />
+                                <button class="btn small" @onclick="() => FinishRename(collection)">OK</button>
+                            </div>
                         }
                         else
                         {
-                            <button class="btn small" @onclick="() => _confirmDelete = collection">@L["Delete…"]</button>
-                        }
-                    </div>
-                }
-            </div>
-            @if (open)
-            {
-                <div class="dl-list">
-                    @foreach (var hash in collection.Hashes.ToList())
-                    {
-                        <div class="dl-row">
-                            @if (_local.TryGetValue(hash, out var map))
-                            {
-                                <span class="tag have">@L["in osu!"]</span>
-                                <span class="dl-name">@map.Artist – @map.Title <span class="muted">[@map.Version]</span></span>
-                            }
-                            else
-                            {
-                                <span class="tag">@L["not in osu!"]</span>
-                                <span class="dl-name muted">@L.F("Difficulty {0}… (shows up once the map is in osu!)", hash[..Math.Min(8, hash.Length)])</span>
-                            }
-                            <button class="btn small" @onclick="() => Collections.Remove(collection, hash)">@L["Remove"]</button>
-                        </div>
-                    }
-                </div>
-            }
-        </section>
-    }
-}
-
-@if (IsLazerTarget)
-{
-    <div class="panel-head spaced-top">
-        <h2>@L["Already in osu!lazer"]</h2>
-        <button class="btn small" disabled="@(_lazer is null)" title="@L["Read osu!lazer's collections again, e.g. after making some in osu!lazer"]"
-                @onclick="LazerRealm.Reload">@L["Reload from osu!lazer"]</button>
-    </div>
-    <p class="muted">@L["The collections osu!lazer has now, read from a copy of its database. Change them in osu!lazer itself."]</p>
-    @if (_lazer is null)
-    {
-        <p class="muted"><span class="spinner"></span> @L["Reading osu!lazer's database…"]</p>
-    }
-    else if (_lazer.Error is not null)
-    {
-        <div class="callout error">@_lazer.Error</div>
-    }
-    else if (_lazer.Content is not { Collections.Count: > 0 })
-    {
-        <p class="muted">@L["osu!lazer has no collections yet."]</p>
-    }
-    else
-    {
-        @foreach (var collection in _lazer.Content.Collections)
-        {
-            var installed = collection.Hashes.Count(h => _local.ContainsKey(h));
-            var open = _openLazer.Contains(collection.Id);
-            <section class="panel collection">
-                <div class="panel-head">
-                    <h2 class="clickable-title" @onclick="() => ToggleLazer(collection.Id)">
-                        @(open ? "▾" : "▸") @collection.Name
-                        <small class="muted">@L.F("{0} difficulties · {1} in osu!", collection.Hashes.Count, installed)</small>
-                    </h2>
-                    <span class="tag">@L["read-only"]</span>
-                </div>
-                @if (open)
-                {
-                    <div class="dl-list">
-                        @foreach (var hash in collection.Hashes)
-                        {
-                            <div class="dl-row">
-                                @if (_local.TryGetValue(hash, out var map))
+                            <button class="collection-title" @onclick="() => ToggleOpen(collection)">
+                                <span class="caret">@(open ? "▾" : "▸")</span>
+                                <b>@collection.Name</b>
+                                <span class="count" title="@L.F("{0} difficulties · {1} in osu!", collection.Hashes.Count, installed)">@installed/@collection.Hashes.Count</span>
+                            </button>
+                            <div class="actions">
+                                <button class="btn small" @onclick="() => StartRename(collection)">@L["Rename"]</button>
+                                @if (_confirmDelete == collection)
                                 {
-                                    <span class="tag have">@L["in osu!"]</span>
-                                    <span class="dl-name">@map.Artist – @map.Title <span class="muted">[@map.Version]</span></span>
+                                    <button class="btn small primary" @onclick="() => Delete(collection)">@L["Delete"]</button>
+                                    <button class="btn small" @onclick="() => _confirmDelete = null">@L["Cancel"]</button>
                                 }
                                 else
                                 {
-                                    <span class="tag">@L["not in osu!"]</span>
-                                    <span class="dl-name muted">@L.F("Difficulty {0}… (shows up once the map is in osu!)", hash[..Math.Min(8, hash.Length)])</span>
+                                    <button class="btn small" @onclick="() => _confirmDelete = collection">@L["Delete…"]</button>
                                 }
                             </div>
                         }
                     </div>
-                }
-            </section>
+                    @if (open)
+                    {
+                        <div class="dl-list">
+                            @if (collection.Hashes.Count == 0)
+                            {
+                                <p class="muted small-text">@L["Empty. Add maps from Beatmaps with Add to collection…"]</p>
+                            }
+                            @foreach (var hash in collection.Hashes.ToList())
+                            {
+                                <div class="dl-row">
+                                    @if (_local.TryGetValue(hash, out var map))
+                                    {
+                                        <span class="tag have">@L["in osu!"]</span>
+                                        <span class="dl-name">@map.Artist – @map.Title <span class="muted">[@map.Version]</span></span>
+                                    }
+                                    else
+                                    {
+                                        <span class="tag">@L["not in osu!"]</span>
+                                        <span class="dl-name muted">@L.F("Difficulty {0}… (shows up once the map is in osu!)", hash[..Math.Min(8, hash.Length)])</span>
+                                    }
+                                    <button class="btn small" @onclick="() => Collections.Remove(collection, hash)">@L["Remove"]</button>
+                                </div>
+                            }
+                        </div>
+                    }
+                </section>
+            }
         }
+    </div>
+
+    @if (IsLazerTarget)
+    {
+        <div class="collections-column">
+            <div class="column-head">
+                <h2>@L["Already in osu!lazer"] @if (_lazer?.Content is { } c) { <small class="muted">@c.Collections.Count</small> }</h2>
+                <button class="btn small" disabled="@(_lazer is null)" title="@L["Read osu!lazer's collections again, e.g. after making some in osu!lazer"]"
+                        @onclick="LazerRealm.Reload">@L["Reload from osu!lazer"]</button>
+            </div>
+            <p class="muted small-text">@L["The collections osu!lazer has now, read from a copy of its database. Change them in osu!lazer itself."]</p>
+            @if (_lazer is null)
+            {
+                <p class="muted"><span class="spinner small"></span> @L["Reading osu!lazer's database…"]</p>
+            }
+            else if (_lazer.Error is not null)
+            {
+                <div class="callout error">@_lazer.Error</div>
+            }
+            else if (_lazer.Content is not { Collections.Count: > 0 })
+            {
+                <p class="muted empty-note">@L["osu!lazer has no collections yet."]</p>
+            }
+            else
+            {
+                @foreach (var collection in _lazer.Content.Collections)
+                {
+                    var installed = collection.Hashes.Count(h => _local.ContainsKey(h));
+                    var open = _openLazer.Contains(collection.Id);
+                    <section class="panel collection readonly @(open ? "open" : "")">
+                        <div class="collection-head">
+                            <button class="collection-title" @onclick="() => ToggleLazer(collection.Id)">
+                                <span class="caret">@(open ? "▾" : "▸")</span>
+                                <b>@collection.Name</b>
+                                <span class="count" title="@L.F("{0} difficulties · {1} in osu!", collection.Hashes.Count, installed)">@installed/@collection.Hashes.Count</span>
+                            </button>
+                        </div>
+                        @if (open)
+                        {
+                            <div class="dl-list">
+                                @foreach (var hash in collection.Hashes)
+                                {
+                                    <div class="dl-row">
+                                        @if (_local.TryGetValue(hash, out var map))
+                                        {
+                                            <span class="tag have">@L["in osu!"]</span>
+                                            <span class="dl-name">@map.Artist – @map.Title <span class="muted">[@map.Version]</span></span>
+                                        }
+                                        else
+                                        {
+                                            <span class="tag">@L["not in osu!"]</span>
+                                            <span class="dl-name muted">@L.F("Difficulty {0}… (shows up once the map is in osu!)", hash[..Math.Min(8, hash.Length)])</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </section>
+                }
+            }
+        </div>
     }
-}
+</div>
 
 @code {
     private LazerRealmResult? _lazer;

@@ -253,6 +253,84 @@ small { font-weight: normal; }
 .detail-grid .tag { color: var(--c); font-size: 11.5px; align-self: flex-start; }
 .spinner.small { display: inline-block; width: 12px; height: 12px; border-width: 2px; vertical-align: middle; }
 
+/* Settings: one block per topic, the explanation on the left and the controls on the right. */
+.settings-nav {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin: 0 -36px 18px; padding: 10px 36px;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+}
+.settings-section { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 28px; scroll-margin-top: 64px; }
+.settings-section > header h2 { margin: 0 0 6px; font-size: 17px; }
+.settings-nav button {
+    background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 999px;
+    padding: 4px 12px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+.settings-nav button:hover { border-color: var(--pink); color: var(--pink); }
+.settings-section > header .tag { margin-bottom: 8px; }
+.settings-section > header p { margin: 0; font-size: 13px; line-height: 1.5; }
+.settings-body > :first-child { margin-top: 0; }
+.settings-body > :last-child { margin-bottom: 0; }
+@media (max-width: 900px) {
+    .settings-section { grid-template-columns: 1fr; gap: 12px; }
+}
+
+.stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.stat-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; background: var(--panel-2); border-radius: 6px; padding: 10px 12px; }
+.stat-card > span:first-child { color: var(--muted); font-size: 12px; }
+.stat-card b { font-size: 16px; }
+.stat-card .tag { color: var(--c); }
+.ok-text { color: var(--ok); }
+
+/* An opt-in that changes something risky: framed in the warning colour, stronger once switched on. */
+.experimental-box { border: 1px dashed var(--warn); border-radius: 6px; padding: 12px 14px; }
+.experimental-box.on { border-style: solid; background: rgba(246, 192, 92, .06); }
+.experimental-box p { margin: 8px 0 0 24px; }
+
+/* Collections: what you prepare on the left, what osu!lazer already has on the right. */
+.info-panel > summary { cursor: pointer; font-weight: 800; font-size: 15px; list-style: none; display: flex; align-items: center; gap: 8px; }
+.info-panel > summary::-webkit-details-marker { display: none; }
+.info-panel > summary::before { content: "▸"; color: var(--muted); }
+.info-panel[open] > summary::before { content: "▾"; }
+.info-panel[open] > summary { margin-bottom: 10px; }
+.collections-columns.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; }
+@media (max-width: 1000px) {
+    .collections-columns.two { grid-template-columns: 1fr; }
+}
+.column-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 34px; margin-bottom: 8px; }
+.column-head h2 { margin: 0; font-size: 17px; }
+.column-head h2 small { margin-left: 4px; font-weight: 700; }
+.new-collection { margin-bottom: 12px; }
+.empty-note { padding: 18px; text-align: center; border: 1px dashed var(--border); border-radius: var(--radius); }
+.collection { padding: 10px 14px; margin-bottom: 8px; }
+.collection.readonly { background: transparent; }
+.collection-head { display: flex; align-items: center; gap: 10px; min-height: 30px; }
+.collection-title {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
+    background: none; border: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; padding: 0;
+}
+.collection-title b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.collection-title .caret { color: var(--muted); width: 10px; }
+.collection-title .count { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 700; background: var(--panel-2); border-radius: 999px; padding: 1px 8px; }
+.collection .actions { margin: 0; flex-shrink: 0; }
+
+/* Skins: the one in use first and larger, then yours in a grid, then lazer's built-in ones in a compact row. */
+.section-title { font-size: 15px; margin: 22px 0 10px; }
+h1 small { margin-left: 8px; font-size: 16px; font-weight: 700; }
+.section-title small { margin-left: 4px; }
+.skins { gap: 14px; }
+.skin { margin-bottom: 0; display: flex; flex-direction: column; }
+.skin-head { display: flex; align-items: flex-start; gap: 12px; }
+.skin-text { flex: 1; min-width: 0; }
+.skin h3 { margin: 0 0 2px; font-size: 15px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.skin.featured { padding: 20px 22px; background: linear-gradient(135deg, rgba(255, 102, 171, .08), transparent 60%), var(--panel); }
+.skin.featured h3 { font-size: 19px; }
+.skin.featured .skin-img { width: 96px; height: 96px; }
+.skin.featured .skin-img img { max-width: 88px; max-height: 88px; }
+.builtin-skins { display: flex; flex-wrap: wrap; gap: 8px; }
+.builtin-skin { display: flex; flex-direction: column; gap: 2px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; min-width: 170px; }
+.builtin-skin span { font-size: 12px; }
+
 /* Stands in for a whole page while it loads. */
 .page-loader { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 80px 0; color: var(--muted); }
 .page-loader .spinner { width: 36px; height: 36px; border-width: 4px; }

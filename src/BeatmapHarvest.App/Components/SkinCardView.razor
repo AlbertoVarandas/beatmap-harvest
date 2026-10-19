@@ -1,0 +1,41 @@
+@* One skin on the Skins page, for osu! stable and osu!lazer alike. *@
+
+<section class="panel skin @(Card.Current ? "current" : "") @(Featured ? "featured" : "")">
+    <div class="skin-head">
+        <div class="skin-text">
+            <h3>
+                @Card.Name
+                @if (Card.Current) { <span class="tag have">@L["current"]</span> }
+                @if (Card.BuiltIn) { <span class="tag">@L["built-in"]</span> }
+            </h3>
+            <div class="muted small-text">@Card.Author · @Card.Detail</div>
+        </div>
+        @if (Card.Folder is not null)
+        {
+            <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(Card.Folder)">@L["Open folder"]</button>
+        }
+    </div>
+    @if (Card.Previews.Count > 0)
+    {
+        <div class="skin-previews">
+            @foreach (var (label, url) in Card.Previews)
+            {
+                <figure>
+                    <div class="skin-img"><img src="@url" alt="@label" loading="lazy" onerror="this.style.visibility='hidden'" /></div>
+                    <figcaption>@label</figcaption>
+                </figure>
+            }
+        </div>
+    }
+    else if (!Card.BuiltIn)
+    {
+        <p class="muted small-text">@L["No preview images (this skin uses osu!'s defaults for these elements)."]</p>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public SkinCard Card { get; set; } = default!;
+
+    /// <summary>The skin in use, shown larger at the top.</summary>
+    [Parameter] public bool Featured { get; set; }
+}
