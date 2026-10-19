@@ -52,4 +52,25 @@ public class LazerImportTests
         Assert.Equal(["200 C - D.osz", "no id.osz"], pending.Select(Path.GetFileName));
         Assert.Empty(LazerImport.PendingArchives(dir.File("missing"), new HashSet<long>()));
     }
+
+    [Fact]
+    public void Lists_the_downloads_folder_newest_first_with_what_is_in_the_game()
+    {
+        using var dir = new TempDirectory();
+        File.WriteAllText(dir.File("100 A - B.osz"), "x");
+        File.SetLastWriteTime(dir.File("100 A - B.osz"), new DateTime(2026, 1, 1));
+        File.WriteAllText(dir.File("200 C - D.osz"), "xy");
+        File.SetLastWriteTime(dir.File("200 C - D.osz"), new DateTime(2026, 2, 1));
+        File.WriteAllText(dir.File("no id.osz"), "");
+        File.SetLastWriteTime(dir.File("no id.osz"), new DateTime(2025, 1, 1));
+        File.WriteAllText(dir.File("300 E - F.osz.part"), "");
+
+        var list = DownloadsFolder.List(dir.Path, new HashSet<long> { 100 });
+
+        Assert.Equal(["C - D", "A - B", "no id"], list.Select(a => a.Name));
+        Assert.Equal([false, true, false], list.Select(a => a.InGame));
+        Assert.Equal([200L, 100L, null], list.Select(a => a.SetId));
+        Assert.Equal(2, list[0].Size);
+        Assert.Empty(DownloadsFolder.List(dir.File("missing"), new HashSet<long>()));
+    }
 }
