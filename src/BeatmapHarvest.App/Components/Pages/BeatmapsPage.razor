@@ -507,7 +507,7 @@ else
         ApplyProfileFilter();
         SyncInputs();
 
-        var library = await Library.GetAsync();
+        var library = await Library.GetAsync().AtLeast();
         _owned = library.Ownership;
         if (library.Error is not null)
             Show(false, library.Error);

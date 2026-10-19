@@ -79,7 +79,7 @@ else if (_friends is not null)
         _error = null;
         try
         {
-            _friends = await Account.GetFriendsAsync();
+            _friends = await Account.GetFriendsAsync().AtLeast();
         }
         catch (OsuApiException ex)
         {

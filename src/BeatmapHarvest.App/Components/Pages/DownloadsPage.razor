@@ -316,7 +316,7 @@ else
         _moving = true;
         try
         {
-            var result = await Session.MoveToSongsAsync();
+            var result = await Session.MoveToSongsAsync().AtLeast();
             _moveOk = true;
             _moveMessage = result.Moved == 0 && result.AlreadyThere == 0
                 ? L["There were no .osz files to move."]
