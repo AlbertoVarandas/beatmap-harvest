@@ -19,7 +19,17 @@ public enum CollectionsTarget
 
     /// <summary>osu!lazer only: written to a folder of the app that lazer accepts as an "osu!stable" folder to import from.</summary>
     LazerFolder,
+
+    /// <summary>
+    /// EXPERIMENTAL (Settings): prepared in the app's folder like <see cref="LazerFolder"/>, then saved straight into
+    /// osu!lazer's database (<see cref="LazerRealmWriter"/>); the prepared list is emptied once they are in lazer.
+    /// </summary>
+    LazerDirect,
 }
+
+/// <param name="Backup">The previous file (collection.db, or osu!lazer's database), if one was kept.</param>
+/// <param name="Lazer">What was added to osu!lazer, when saved straight into it.</param>
+public sealed record CollectionsSaveResult(string? Backup, LazerWriteResult? Lazer);
 
 public sealed record CollectionsLocation(CollectionsTarget Target, string File, string Folder);
 
@@ -29,7 +39,8 @@ public sealed record CollectionsLocation(CollectionsTarget Target, string File, 
 /// Changes stay in memory until <see cref="Save"/>, which backs up the previous file first.
 /// </summary>
 public sealed class CollectionsService(
-    OsuLibrary library, MapDetailsService details, AppPaths paths, TimeProvider time, OsuProcessWatcher processes)
+    OsuLibrary library, MapDetailsService details, AppPaths paths, TimeProvider time, OsuProcessWatcher processes,
+    SettingsStore settings, LazerRealmService lazerRealm)
 {
     private CollectionDatabase? _db;
     private CollectionsLocation? _location;
@@ -52,9 +63,14 @@ public sealed class CollectionsService(
     private OsuClient? BlockedBy(bool stableRunning, bool lazerRunning) => Location.Target switch
     {
         CollectionsTarget.Stable or CollectionsTarget.LazerViaStable when stableRunning => OsuClient.Stable,
-        CollectionsTarget.LazerViaStable or CollectionsTarget.LazerFolder when lazerRunning => OsuClient.Lazer,
+        CollectionsTarget.LazerViaStable or CollectionsTarget.LazerFolder or CollectionsTarget.LazerDirect when lazerRunning => OsuClient.Lazer,
         _ => null,
     };
+
+    /// <summary>Unsaved changes; straight into osu!lazer, any prepared collection (the list only holds what is not in lazer yet).</summary>
+    public bool HasSomethingToSave => Location.Target == CollectionsTarget.LazerDirect
+        ? Get()?.Collections.Count > 0
+        : IsDirty;
 
     /// <summary>The collections, loaded on first use. Null when no osu! is installed.</summary>
     public CollectionDatabase? Get()
@@ -162,9 +178,32 @@ public sealed class CollectionsService(
         return new AddResult(added, mapsets.Count, notFound);
     }
 
-    /// <summary>Writes the collection.db. Returns the backup path, if there was a previous file.</summary>
-    /// <exception cref="InvalidOperationException">A client that must be closed is open, or no osu! is installed.</exception>
-    public string? Save()
+    /// <summary>Writes the collection.db, or (experimental option) adds the collections straight into osu!lazer.</summary>
+    /// <exception cref="InvalidOperationException">A client that must be closed is open, no osu! is installed, or osu!lazer's database could not be changed safely.</exception>
+    public async Task<CollectionsSaveResult> SaveAsync()
+    {
+        if (Location.Target != CollectionsTarget.LazerDirect)
+            return new CollectionsSaveResult(Save(), null);
+
+        if (processes.Check().Lazer)
+            throw new InvalidOperationException("Close osu!lazer first.");
+        var db = Get() ?? throw new InvalidOperationException("osu! was not found on this PC.");
+        var lazer = library.Clients.Lazer ?? throw new InvalidOperationException("osu! was not found on this PC.");
+        var writes = db.Collections.Select(c => new LazerCollectionWrite(c.Name, c.Hashes.ToList())).ToList();
+        var result = await Task.Run(() => LazerRealmWriter.AddCollections(
+            lazer.RealmFile, paths.LazerRealmCopyDirectory, paths.LazerBackupsDirectory, writes, time.GetUtcNow())).ConfigureAwait(false);
+
+        // They are in osu!lazer now; the prepared list starts empty again (it may never have been written to disk).
+        if (File.Exists(Location.File))
+            File.Delete(Location.File);
+        _db = null;
+        IsDirty = false;
+        lazerRealm.Reload();
+        Changed?.Invoke();
+        return new CollectionsSaveResult(result.Backup, result);
+    }
+
+    private string? Save()
     {
         var (stableRunning, lazerRunning) = processes.Check();
         switch (BlockedBy(stableRunning, lazerRunning))
@@ -194,6 +233,8 @@ public sealed class CollectionsService(
         return library.Client switch
         {
             OsuClient.Stable when stable is not null => new(CollectionsTarget.Stable, stable.CollectionFile, stable.Root),
+            OsuClient.Lazer when settings.Load().LazerDirectCollections && clients.Lazer is { } lazer => new(CollectionsTarget.LazerDirect,
+                Path.Combine(paths.LazerCollectionsDirectory, "collection.db"), lazer.DataDirectory),
             OsuClient.Lazer when stable is not null => new(CollectionsTarget.LazerViaStable, stable.CollectionFile, stable.Root),
             OsuClient.Lazer => new(CollectionsTarget.LazerFolder,
                 Path.Combine(paths.LazerCollectionsDirectory, "collection.db"), paths.LazerCollectionsDirectory),

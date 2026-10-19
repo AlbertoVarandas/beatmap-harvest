@@ -87,6 +87,17 @@ public class LazerTests
         Assert.Equal(Guid.Parse("d94f147a-9e8a-4be5-8369-018638e7939c"), install.CurrentSkin);
     }
 
+    [Fact]
+    public void Reads_and_compares_lazer_versions()
+    {
+        Assert.Equal("2026.1005.0", LazerInstall.ParseVersion("2026.1005.0-lazer+9a10d935b05a3b896f4bd811d620f2023331db93"));
+        Assert.Equal("2026.1018.0", LazerInstall.ParseVersion("2026.1018.0"));
+        Assert.Null(LazerInstall.ParseVersion("not a version"));
+        Assert.True(LazerInstall.CompareVersions("2026.1005.0", "2026.1018.0") < 0);
+        Assert.True(LazerInstall.CompareVersions("2026.1018.1", "2026.1018.0-lazer") > 0);
+        Assert.True(LazerInstall.CompareVersions(null, "2026.1018.0") < 0);
+    }
+
     [Theory]
     [InlineData(true, true, null, OsuClient.Lazer)]
     [InlineData(true, true, OsuClient.Stable, OsuClient.Stable)]

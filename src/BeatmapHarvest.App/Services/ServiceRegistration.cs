@@ -71,6 +71,7 @@ public static class ServiceRegistration
         services.AddSingleton<CollectionsService>();
         services.AddSingleton<LazerImportService>();
         services.AddSingleton<LazerRealmService>();
+        services.AddSingleton(sp => new LazerVersionService(sp.GetRequiredKeyedService<HttpClient>(MirrorHttp)));
         services.AddSingleton<OsuProcessWatcher>();
         return services;
     }

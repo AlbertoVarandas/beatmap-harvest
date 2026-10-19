@@ -1,5 +1,6 @@
 using Realms;
 using Realms.Exceptions;
+using Realms.Schema;
 
 namespace BeatmapHarvest.Core.Library;
 
@@ -12,21 +13,24 @@ public sealed record LazerSkinFile(string Filename, string Hash);
 public sealed record LazerSkin(Guid Id, string Name, string Creator, bool Protected, IReadOnlyList<LazerSkinFile> Files);
 
 /// <param name="Backgrounds">For each beatmapset id, the store hash of its background image (for maps without a cover online).</param>
+/// <param name="SchemaVersion">lazer's database version (its model classes; 52 in late 2026); null if unknown.</param>
+/// <param name="FileFormat">Realm's on-disk format of the file, from its header; null if the header is not Realm's.</param>
+/// <param name="CollectionsShapeOk">BeatmapCollection has exactly the properties <see cref="LazerRealmWriter"/> writes.</param>
 public sealed record LazerRealmContent(
     IReadOnlyList<LazerCollectionInfo> Collections,
     IReadOnlyList<LazerSkin> Skins,
-    IReadOnlyDictionary<long, string> Backgrounds);
+    IReadOnlyDictionary<long, string> Backgrounds,
+    ulong? SchemaVersion,
+    int? FileFormat,
+    bool CollectionsShapeOk);
 
 /// <summary>
 /// Reads collections and skins from osu!lazer's database. It never opens lazer's own client.realm: the file is copied to
 /// a work folder and only the copy is opened, through Realm's dynamic API (no model classes, so lazer's frequent schema
-/// changes don't matter). Opening the copy may upgrade the copy; the original is never touched.
+/// changes don't matter). The original is never opened.
 /// </summary>
-public static class LazerRealmReader
+public static partial class LazerRealmReader
 {
-    // Above any version lazer will reach; opening the copy with it just records a newer version in the copy.
-    private const ulong CopySchemaVersion = 1_000_000;
-
     private static readonly Guid RandomSkinId = Guid.Parse("D39DFEFB-477C-4372-B1EA-2BCEA5FB8908");
 
     /// <exception cref="InvalidDataException">The copy is not a database Realm can open.</exception>
@@ -36,18 +40,23 @@ public static class LazerRealmReader
         var copy = Path.Combine(workDirectory, "client-copy.realm");
         DeleteCopy(copy);
         File.Copy(realmFile, copy, overwrite: true);
+        var fileFormat = RealmFileHeader.FileFormat(copy);
 
         try
         {
-            var config = new RealmConfiguration(copy)
-            {
-                IsDynamic = true,
-                SchemaVersion = CopySchemaVersion,
-            };
+            // Dynamic: the file's own schema is used and its version is left as it is (Realm ignores SchemaVersion here).
+            var config = new RealmConfiguration(copy) { IsDynamic = true };
             return WithoutSynchronizationContext(() =>
             {
-                using var realm = Realm.GetInstance(config);
-                return new LazerRealmContent(ReadCollections(realm), ReadSkins(realm), ReadBackgrounds(realm));
+                LazerRealmContent content;
+                RealmSchema schema;
+                using (var realm = Realm.GetInstance(config))
+                {
+                    schema = realm.Schema;
+                    content = new LazerRealmContent(ReadCollections(realm), ReadSkins(realm), ReadBackgrounds(realm),
+                        null, fileFormat, LazerRealmWriter.HasCollectionShape(realm));
+                }
+                return content with { SchemaVersion = SchemaVersionOf(copy, schema) };
             });
         }
         catch (RealmException ex)
@@ -59,6 +68,30 @@ public static class LazerRealmReader
             DeleteCopy(copy);
         }
     }
+
+    /// <summary>
+    /// The schema version stored in a copy (shown to the user). Realm has no call for it, but opening the file with its
+    /// own schema at version 0 is refused with "… less than last set version N" before anything is written.
+    /// </summary>
+    private static ulong? SchemaVersionOf(string copy, RealmSchema schema)
+    {
+        try
+        {
+            using var realm = Realm.GetInstance(new RealmConfiguration(copy) { Schema = schema, SchemaVersion = 0 });
+            return 0;
+        }
+        catch (RealmException ex) when (StoredVersion().Match(ex.Message) is { Success: true } match)
+        {
+            return ulong.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+        }
+        catch (RealmException)
+        {
+            return null;
+        }
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"last set version (\d+)")]
+    private static partial System.Text.RegularExpressions.Regex StoredVersion();
 
     /// <summary>
     /// Realm hooks change notifications into the current SynchronizationContext (the UI thread, a test runner…) and calls
@@ -167,9 +200,10 @@ public static class LazerRealmReader
     /// <summary>Path of a file in lazer's store, relative to its <c>files</c> folder: a/ab/abcdef….</summary>
     public static string StorePath(string hash) => Path.Combine(hash[..1], hash[..2], hash);
 
-    private static void DeleteCopy(string copy)
+    /// <summary>Deletes a copy and the files Realm keeps next to an open file (<paramref name="keepMain"/>: only those).</summary>
+    internal static void DeleteCopy(string copy, bool keepMain = false)
     {
-        foreach (var path in new[] { copy, copy + ".lock", copy + ".note" })
+        foreach (var path in keepMain ? [copy + ".lock", copy + ".note"] : new[] { copy, copy + ".lock", copy + ".note" })
         {
             try
             {

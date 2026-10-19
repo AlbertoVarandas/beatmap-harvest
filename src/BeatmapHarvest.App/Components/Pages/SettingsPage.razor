@@ -103,6 +103,60 @@
         <FolderField Label="@L["Songs folder"]" Value="@_songs"
                      ValueChanged="v => SaveFolders(() => _songs = v)" DefaultPath="@DetectedSongs" />
     }
+
+    @if (clients.Lazer is { } lazer)
+    {
+        var installed = lazer.Version;
+        <h3>osu!lazer</h3>
+        <div class="detail-grid">
+            <div>
+                <span>@L["Installed version"]</span>
+                <b>@(installed ?? L["unknown"])</b>
+                @if (installed is not null && _latestLazer is not null)
+                {
+                    @if (LazerInstall.CompareVersions(installed, _latestLazer) >= 0)
+                    {
+                        <span class="tag have">@L["up to date"]</span>
+                    }
+                    else
+                    {
+                        <span class="tag downloaded-only" title="@L["osu!lazer updates itself when it starts."]">@L.F("update available: {0}", _latestLazer)</span>
+                    }
+                }
+            </div>
+            <div>
+                <span>@L["Database"]</span>
+                @if (_lazerRealm?.Content is { } content)
+                {
+                    <b>@(content.SchemaVersion is { } v ? L.F("version {0}", v) : L["unknown"])</b>
+                }
+                else if (_lazerRealm?.Error is not null)
+                {
+                    <b class="error-text">@L["could not be read"]</b>
+                }
+                else
+                {
+                    <span class="spinner small"></span>
+                }
+            </div>
+            <div>
+                <span>@L["Collections straight into osu!lazer"]</span>
+                @if (_lazerCompatibility is { } compatibility)
+                {
+                    <span class="tag @(compatibility.Compatible ? "have" : "failed")" title="@(compatibility.Reason is null ? null : L[compatibility.Reason])">
+                        @L[compatibility.Compatible ? "compatible" : "not compatible"]
+                    </span>
+                }
+            </div>
+        </div>
+        <label class="check-field">
+            <input type="checkbox" checked="@_lazerDirect" @onchange="e => SetLazerDirect((bool)e.Value!)" />
+            @L["Save collections straight into osu!lazer, without its setup wizard"] <span class="tag downloaded-only">@L["experimental"]</span>
+        </label>
+        <p class="muted small-text">
+            @L["Beatmap Harvest then changes osu!lazer's database itself (only with osu!lazer closed, after checking a changed copy and keeping a backup). If osu!lazer ever fails to start afterwards, restore the backup or turn this off."]
+        </p>
+    }
 </section>
 
 <section class="panel">
@@ -141,6 +195,31 @@
 
     private string? _lazer;
     private OsuClient? _client;
+    private bool _lazerDirect;
+    private string? _latestLazer;
+    private LazerRealmResult? _lazerRealm;
+    private LazerWriteCompatibility? _lazerCompatibility;
+
+    [Inject] private LazerRealmService LazerRealm { get; set; } = default!;
+    [Inject] private LazerVersionService LazerVersions { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _lazerRealm = await LazerRealm.GetAsync();
+        if (_lazerRealm.Content is { } content)
+            _lazerCompatibility = await Task.Run(() => LazerRealm.Compatibility(content));
+        StateHasChanged();
+        _latestLazer = await LazerVersions.LatestAsync();
+    }
+
+    private void SetLazerDirect(bool on)
+    {
+        _lazerDirect = on;
+        Settings.Save(Settings.Load() with { LazerDirectCollections = on });
+        // Where collections are saved changes; unsaved edits are kept only if there are none to lose.
+        if (!Collections.IsDirty)
+            Collections.Discard();
+    }
 
     private string DetectedSongs => OsuInstall.Find(_osu)?.SongsDirectory ?? AppPaths.DefaultSongsDirectory;
     private int _parallel;
@@ -156,6 +235,7 @@
         _osu = settings.OsuDirectory;
         _lazer = settings.LazerDirectory;
         _client = settings.Client;
+        _lazerDirect = settings.LazerDirectCollections;
         _songs = settings.SongsDirectory;
         _moveTo = settings.MoveToDirectory;
         _parallel = settings.MaxParallelDownloads;

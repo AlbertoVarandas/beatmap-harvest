@@ -22,6 +22,9 @@ public sealed record AppSettings
     /// <summary>osu!lazer's data folder; null → detected automatically.</summary>
     public string? LazerDirectory { get; init; }
 
+    /// <summary>EXPERIMENTAL: save collections straight into osu!lazer's database instead of going through its setup wizard.</summary>
+    public bool LazerDirectCollections { get; init; }
+
     /// <summary>null → the Songs folder of the osu! install (from its config), or <see cref="AppPaths.DefaultSongsDirectory"/>.</summary>
     public string? SongsDirectory { get; init; }
 
