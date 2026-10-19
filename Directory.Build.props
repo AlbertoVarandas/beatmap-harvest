@@ -9,7 +9,7 @@
     <!-- Symbols inside the binaries, so a published build has no loose .pdb files. -->
     <DebugType>embedded</DebugType>
 
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Kriptonyte</Authors>
     <Product>Beatmap Harvest</Product>
     <Copyright>Copyright (c) 2026 Kriptonyte</Copyright>
