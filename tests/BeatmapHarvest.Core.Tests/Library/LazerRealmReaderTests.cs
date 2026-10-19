@@ -34,6 +34,23 @@ public class LazerRealmReaderTests
             Property.ObjectList("Files", "RealmNamedFileUsage"),
             Property.Primitive("DeletePending", RealmValueType.Bool),
         },
+        new ObjectSchema.Builder("BeatmapMetadata", ObjectSchema.ObjectType.RealmObject)
+        {
+            Property.Primitive("BackgroundFile", RealmValueType.String, isNullable: true),
+        },
+        new ObjectSchema.Builder("Beatmap", ObjectSchema.ObjectType.RealmObject)
+        {
+            Property.Primitive("ID", RealmValueType.Guid, isPrimaryKey: true),
+            Property.Object("Metadata", "BeatmapMetadata"),
+        },
+        new ObjectSchema.Builder("BeatmapSet", ObjectSchema.ObjectType.RealmObject)
+        {
+            Property.Primitive("ID", RealmValueType.Guid, isPrimaryKey: true),
+            Property.Primitive("OnlineID", RealmValueType.Int),
+            Property.ObjectList("Beatmaps", "Beatmap"),
+            Property.ObjectList("Files", "RealmNamedFileUsage"),
+            Property.Primitive("DeletePending", RealmValueType.Bool),
+        },
     }.Build();
 
     private static string CreateLazerLikeRealm(string directory) =>
@@ -68,6 +85,20 @@ public class LazerRealmReaderTests
             var deleted = realm.DynamicApi.CreateObject("Skin", Guid.NewGuid());
             deleted.DynamicApi.Set("Name", "gone");
             deleted.DynamicApi.Set("DeletePending", true);
+
+            var metadata = realm.DynamicApi.CreateObject("BeatmapMetadata");
+            metadata.DynamicApi.Set("BackgroundFile", "BG.jpg");
+            var beatmap = realm.DynamicApi.CreateObject("Beatmap", Guid.NewGuid());
+            beatmap.DynamicApi.Set("Metadata", RealmValue.Object(metadata));
+            var set = realm.DynamicApi.CreateObject("BeatmapSet", Guid.NewGuid());
+            set.DynamicApi.Set("OnlineID", 203358);
+            set.DynamicApi.GetList<IRealmObject>("Beatmaps").Add((IRealmObject)beatmap);
+            var audio = realm.DynamicApi.AddEmbeddedObjectToList(set.DynamicApi.GetList<IEmbeddedObject>("Files"));
+            audio.DynamicApi.Set("File", RealmValue.Object(realm.DynamicApi.CreateObject("File", "audiohash")));
+            audio.DynamicApi.Set("Filename", "audio.mp3");
+            var bg = realm.DynamicApi.AddEmbeddedObjectToList(set.DynamicApi.GetList<IEmbeddedObject>("Files"));
+            bg.DynamicApi.Set("File", RealmValue.Object(realm.DynamicApi.CreateObject("File", "bghash")));
+            bg.DynamicApi.Set("Filename", "bg.jpg");
         });
         return path;
     }
@@ -90,6 +121,8 @@ public class LazerRealmReaderTests
         Assert.True(content.Skins[0].Protected);
         var file = Assert.Single(content.Skins[1].Files);
         Assert.Equal(("cursor@2x.png", "abcdef123"), (file.Filename, file.Hash));
+
+        Assert.Equal("bghash", Assert.Single(content.Backgrounds, b => b.Key == 203358).Value);
 
         Assert.Equal(hashBefore, Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(original))));
         Assert.Empty(Directory.GetFileSystemEntries(work));
