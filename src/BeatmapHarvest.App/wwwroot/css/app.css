@@ -297,10 +297,13 @@ small { font-weight: normal; }
 @media (max-width: 1000px) {
     .collections-columns.two { grid-template-columns: 1fr; }
 }
-.column-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 34px; margin-bottom: 8px; }
+.column-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; height: 38px; margin-bottom: 8px; }
 .column-head h2 { margin: 0; font-size: 17px; }
 .column-head h2 small { margin-left: 4px; font-weight: 700; }
-.new-collection { margin-bottom: 12px; }
+/* The band under each column title has the same height on both sides, so both lists start on one line. */
+.column-sub { height: 44px; display: flex; align-items: center; margin-bottom: 12px; }
+.column-sub > * { flex: 1; margin: 0; }
+.collections-column .collection, .collections-column .empty-note { margin-top: 0; }
 .empty-note { padding: 18px; text-align: center; border: 1px dashed var(--border); border-radius: var(--radius); }
 .collection { padding: 10px 14px; margin-bottom: 8px; }
 .collection.readonly { background: transparent; }

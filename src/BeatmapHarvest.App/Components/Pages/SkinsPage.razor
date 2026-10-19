@@ -108,7 +108,7 @@ else
     private async Task LoadLazerAsync()
     {
         var current = Library.Clients.Lazer?.CurrentSkin;
-        _lazer = await LazerRealm.GetAsync();
+        _lazer = await LazerRealm.GetAsync().AtLeast();
         _cards = (_lazer.Content?.Skins ?? []).Select(s => new SkinCard(
                 s.Name, s.Creator.Length == 0 ? L["unknown author"] : L.F("by {0}", s.Creator),
                 s.Protected ? L["Comes with osu!lazer."] : L.F(s.Files.Count == 1 ? "{0} file" : "{0} files", s.Files.Count),
