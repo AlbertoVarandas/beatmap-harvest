@@ -479,7 +479,8 @@ small { font-weight: normal; }
 .account-text { flex: 1; }
 .avatar { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; background: var(--panel-2); }
 .avatar.small { width: 28px; height: 28px; border-radius: 6px; }
-.friends { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; max-height: 360px; overflow-y: auto; }
+/* No height of its own: the list uses the whole page, which scrolls only when the list is taller than the window. */
+.friends { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
 .friend { display: flex; align-items: center; gap: 8px; background: var(--panel-2); border-radius: 6px; padding: 6px 8px; }
 .friend-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
 a.btn { text-decoration: none; display: inline-block; }
