@@ -177,8 +177,9 @@ else
         @if (Importer.IsRunning || Importer.Sent > 0)
         {
             <div class="progress-row spaced-top">
-                <div class="progress"><div style="width:@Format.Percent(Importer.Total == 0 ? 0 : (double)Importer.Sent / Importer.Total)"></div></div>
-                <b>@Importer.Sent/@Importer.Total</b>
+                @* Half for handing the maps over, half for osu!lazer importing them. *@
+                <div class="progress"><div style="width:@Format.Percent(Importer.Total == 0 ? 0 : (Importer.Sent + Importer.Imported) / (2.0 * Importer.Total))"></div></div>
+                <b title="@L["Imported by osu!lazer"]">@Importer.Imported/@Importer.Total</b>
             </div>
         }
         @if (!Importer.IsRunning && Importer.Status is not null && Importer.Error is null)

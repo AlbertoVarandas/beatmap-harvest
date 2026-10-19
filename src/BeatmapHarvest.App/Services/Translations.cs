@@ -307,8 +307,12 @@ internal static class Translations
             "Os mapas que já estão no osu!lazer ficam de fora. Também podes arrastar os ficheiros da pasta das transferências para a janela do osu!lazer.",
         ["Sending batch {0} of {1} to osu!lazer…"] = "A enviar o lote {0} de {1} para o osu!lazer…",
         ["Waiting for osu!lazer to open…"] = "À espera que o osu!lazer abra…",
-        ["Sent {0} maps to osu!lazer. It imports them in the background; see its notifications."] =
-            "Foram enviados {0} mapas para o osu!lazer. Ele importa-os em segundo plano; vê as notificações dele.",
+        ["osu!lazer is importing the maps… {0} of {1} done"] = "O osu!lazer está a importar os mapas… {0} de {1} feitos",
+        ["osu!lazer imported {0} map."] = "O osu!lazer importou {0} mapa.",
+        ["osu!lazer imported {0} maps."] = "O osu!lazer importou {0} mapas.",
+        ["osu!lazer imported {0} of {1} maps. The other {2} are still in the downloads folder; see osu!lazer's notifications."] =
+            "O osu!lazer importou {0} de {1} mapas. Os outros {2} continuam na pasta das transferências; vê as notificações do osu!lazer.",
+        ["Imported by osu!lazer"] = "Importados pelo osu!lazer",
         ["Stopped. Maps already sent are still imported by osu!lazer."] = "Parado. Os mapas já enviados continuam a ser importados pelo osu!lazer.",
         ["osu!lazer did not accept the maps. Make sure it is open and try again."] = "O osu!lazer não aceitou os mapas. Confirma que está aberto e tenta de novo.",
         ["osu!lazer's program was not found, so the maps can't be sent to it. Drag them onto its window instead."] =

@@ -54,6 +54,41 @@ public class LazerImportTests
     }
 
     [Fact]
+    public async Task Waits_until_lazer_has_taken_every_file()
+    {
+        var present = new HashSet<string> { "a.osz", "b.osz", "c.osz" };
+        var reports = new List<int>();
+        var checks = 0;
+        bool Exists(string file)
+        {
+            // lazer "imports" one file every few checks
+            if (++checks % 9 == 0 && present.Count > 0)
+                present.Remove(present.First());
+            return present.Contains(file);
+        }
+
+        var left = await LazerImport.WaitForImportAsync(["a.osz", "b.osz", "c.osz"], TimeSpan.FromSeconds(5), TimeSpan.FromMilliseconds(5),
+            new SyncProgress(reports), CancellationToken.None, Exists);
+
+        Assert.Equal(0, left);
+        Assert.Equal([0, 1, 2, 3], reports);
+    }
+
+    [Fact]
+    public async Task Stops_waiting_when_lazer_stalls()
+    {
+        var left = await LazerImport.WaitForImportAsync(["a.osz", "b.osz"], TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(10),
+            null, CancellationToken.None, f => f == "b.osz");
+
+        Assert.Equal(1, left);
+    }
+
+    private sealed class SyncProgress(List<int> values) : IProgress<int>
+    {
+        public void Report(int value) => values.Add(value);
+    }
+
+    [Fact]
     public void Lists_the_downloads_folder_newest_first_with_what_is_in_the_game()
     {
         using var dir = new TempDirectory();
