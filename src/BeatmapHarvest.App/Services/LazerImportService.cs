@@ -16,10 +16,19 @@ public sealed class LazerImportService(OsuLibrary library, OsuProcessWatcher pro
     /// <summary>Time for a just-opened lazer to start listening for imports after its window appears.</summary>
     private static readonly TimeSpan IpcWarmUp = TimeSpan.FromSeconds(8);
 
+    /// <summary>How long to keep waiting for lazer when none of the files it was sent disappears.</summary>
+    private static readonly TimeSpan ImportStall = TimeSpan.FromSeconds(90);
+
+    private Localizer Text => l;
+
     public event Action? Changed;
 
+    /// <summary>From the click until osu!lazer has imported the maps (not just received them).</summary>
     public bool IsRunning { get; private set; }
     public int Sent { get; private set; }
+
+    /// <summary>Maps osu!lazer has finished importing (their files are gone from the downloads folder).</summary>
+    public int Imported { get; private set; }
     public int Total { get; private set; }
     public string? Status { get; private set; }
     public string? Error { get; private set; }
@@ -45,6 +54,7 @@ public sealed class LazerImportService(OsuLibrary library, OsuProcessWatcher pro
         }
         IsRunning = true;
         Sent = 0;
+        Imported = 0;
         Total = files.Count;
         Error = null;
         Changed?.Invoke();
@@ -82,7 +92,11 @@ public sealed class LazerImportService(OsuLibrary library, OsuProcessWatcher pro
                 Sent += batch.Count;
                 Changed?.Invoke();
             }
-            Status = l.F("Sent {0} maps to osu!lazer. It imports them in the background; see its notifications.", Sent);
+            var left = await WaitForImportAsync(files, cancellationToken).ConfigureAwait(false);
+            Status = left == 0
+                ? l.F(files.Count == 1 ? "osu!lazer imported {0} map." : "osu!lazer imported {0} maps.", files.Count)
+                : l.F("osu!lazer imported {0} of {1} maps. The other {2} are still in the downloads folder; see osu!lazer's notifications.",
+                    files.Count - left, files.Count, left);
             library.Reload();
         }
         catch (OperationCanceledException)
@@ -97,6 +111,21 @@ public sealed class LazerImportService(OsuLibrary library, OsuProcessWatcher pro
         {
             IsRunning = false;
             Changed?.Invoke();
+        }
+    }
+
+    /// <summary>Keeps the import running until osu!lazer has taken the files (see <see cref="LazerImport.WaitForImportAsync"/>).</summary>
+    private Task<int> WaitForImportAsync(IReadOnlyList<string> files, CancellationToken cancellationToken) =>
+        LazerImport.WaitForImportAsync(files, ImportStall, TimeSpan.FromSeconds(1), new ImportProgress(this, files.Count), cancellationToken);
+
+    // Not System.Progress<T>: that posts to the UI thread; the page marshals with InvokeAsync itself.
+    private sealed class ImportProgress(LazerImportService service, int total) : IProgress<int>
+    {
+        public void Report(int value)
+        {
+            service.Imported = value;
+            service.Status = service.Text.F("osu!lazer is importing the maps… {0} of {1} done", value, total);
+            service.Changed?.Invoke();
         }
     }
 

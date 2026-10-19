@@ -38,6 +38,32 @@ public static class LazerImport
         return batches;
     }
 
+    /// <summary>
+    /// Waits until osu!lazer has imported <paramref name="files"/>: it deletes each .osz once imported, so the import
+    /// is over when they are gone. Gives up when none disappeared for <paramref name="stall"/> (a map lazer refused
+    /// stays). Reports how many are done after every check; returns how many are left.
+    /// </summary>
+    public static async Task<int> WaitForImportAsync(IReadOnlyList<string> files, TimeSpan stall, TimeSpan poll,
+        IProgress<int>? imported, CancellationToken cancellationToken, Func<string, bool>? exists = null)
+    {
+        exists ??= File.Exists;
+        var left = files.Count(exists);
+        var lastChange = DateTime.UtcNow;
+        imported?.Report(files.Count - left);
+        while (left > 0 && DateTime.UtcNow - lastChange < stall)
+        {
+            await Task.Delay(poll, cancellationToken).ConfigureAwait(false);
+            var now = files.Count(exists);
+            if (now != left)
+            {
+                left = now;
+                lastChange = DateTime.UtcNow;
+                imported?.Report(files.Count - left);
+            }
+        }
+        return left;
+    }
+
     /// <summary>The .osz files in <paramref name="directory"/> whose beatmapset is not already in the game.</summary>
     public static IReadOnlyList<string> PendingArchives(string directory, IReadOnlySet<long> inGame)
     {
