@@ -278,12 +278,10 @@ internal static class Translations
         ["Stopped. Nothing was added."] = "Parado. Não foi adicionado nada.",
 
         // osu!lazer: maps and collections are handed to lazer, never written into its database
-        ["osu!lazer keeps its maps in its own database, which Beatmap Harvest never changes. Instead, with osu!lazer closed, Beatmap Harvest opens it with the maps and osu!lazer imports them itself."] =
-            "O osu!lazer guarda os mapas na sua própria base de dados, que o Beatmap Harvest nunca altera. Em vez disso, com o osu!lazer fechado, o Beatmap Harvest abre-o com os mapas e o osu!lazer importa-os ele próprio.",
-        ["osu!lazer is open. Close it to import maps or prepare collections for it."] =
-            "O osu!lazer está aberto. Fecha-o para importar mapas ou preparar coleções para ele.",
-        ["Close osu!lazer first. Beatmap Harvest then opens it with the maps."] =
-            "Fecha primeiro o osu!lazer. O Beatmap Harvest abre-o depois com os mapas.",
+        ["osu!lazer keeps its maps in its own database, which Beatmap Harvest never changes. Instead, the maps are handed to osu!lazer, which imports them itself (it opens if it is closed)."] =
+            "O osu!lazer guarda os mapas na sua própria base de dados, que o Beatmap Harvest nunca altera. Em vez disso, os mapas são entregues ao osu!lazer, que os importa ele próprio (abre-se se estiver fechado).",
+        ["osu!lazer is open. Close it before saving collections for it."] =
+            "O osu!lazer está aberto. Fecha-o antes de guardar coleções para ele.",
         ["Close osu!lazer first."] = "Fecha primeiro o osu!lazer.",
         ["Import {0} map into osu!lazer"] = "Importar {0} mapa para o osu!lazer",
         ["Import {0} maps into osu!lazer"] = "Importar {0} mapas para o osu!lazer",
