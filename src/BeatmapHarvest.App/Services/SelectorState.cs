@@ -11,6 +11,15 @@ public sealed class SelectorState
     private readonly Dictionary<long, SelectorConfig> _configs = [];
     private SelectorConfig? _last;
 
+    /// <summary>Key of the Beatmaps hub (every profile together) in <see cref="For"/>; no osu! user has id 0.</summary>
+    public const long AllProfiles = 0;
+
+    /// <summary>Hub filter: only maps of these profiles (none = every profile).</summary>
+    public HashSet<long> HubProfiles { get; } = [];
+
+    /// <summary>Hub filter: only maps shared between profiles (see CombinedProfiles.InCommon).</summary>
+    public bool HubInCommon { get; set; }
+
     public SelectorConfig For(long userId)
     {
         if (!_configs.TryGetValue(userId, out var config))
@@ -28,7 +37,11 @@ public sealed class SelectorState
         _last = config;
     }
 
-    public void Forget(long userId) => _configs.Remove(userId);
+    public void Forget(long userId)
+    {
+        _configs.Remove(userId);
+        HubProfiles.Remove(userId);
+    }
 
     /// <summary>Same filters and view options, no hand-picked maps (those are ids from another profile).</summary>
     private static SelectorConfig CopyFilters(SelectorConfig source) => new()

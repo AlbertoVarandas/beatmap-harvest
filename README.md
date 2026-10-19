@@ -50,7 +50,9 @@ At the top of **Beatmaps**, enter a profile link (`https://osu.ppy.sh/users/123`
 
 A progress bar shows how far along it is. A large profile takes a minute or two, because osu! limits how fast the app can ask for data. When it finishes, the profile opens on **Overview**: how many maps were found, plays, game modes, star range and the most played maps.
 
-You can harvest as many profiles as you like, yours or other players'. Each one appears under **Beatmaps** in the sidebar; click a name to open it. Each profile keeps its own selection, and **Remove profile…** forgets one (maps you downloaded stay where they are).
+You can harvest as many profiles as you like, yours or other players'. Each one appears under **Beatmaps** in the sidebar; click a name to open it. Each profile keeps its own selection; **Harvest again** refreshes it, and **Remove profile…** forgets it (maps you downloaded stay where they are). **My profile** opens your own.
+
+**Beatmaps** itself compares every profile you harvested (maps, difficulties, plays, music time, and how many you already have), then lists all their maps together, each map once. Besides the usual filters, you can keep only some profiles' maps, and **Only maps in common** shows the maps those profiles share.
 
 If you are signed in, **My friends** lists your osu! friends with a **Harvest** button for each.
 

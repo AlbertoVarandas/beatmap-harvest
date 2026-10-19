@@ -12,13 +12,52 @@
 @inject SettingsStore Settings
 @inject AppPaths Paths
 @inject NavigationManager Nav
+@inject OsuAccount Account
 
 <div class="beatmaps-page">
 <h1>@L["Beatmaps"]</h1>
 
-<HarvestPanel />
+@if (IsHub)
+{
+    <HarvestPanel />
 
-@if (_result is not null)
+    @if (_profileRows.Count > 0)
+    {
+        <section class="panel">
+            <h2>@L["Profiles"]</h2>
+            <table class="table clickable">
+                <thead>
+                    <tr>
+                        <th>@L["Profile"]</th>
+                        <th class="num">@L["Beatmapsets"]</th>
+                        <th class="num">@L["Difficulties"]</th>
+                        <th class="num">@L["Plays"]</th>
+                        <th class="num">@L["Music"]</th>
+                        <th class="num">@L["In osu!"]</th>
+                        <th class="num">@L["Downloaded only"]</th>
+                        <th class="num">@L["Missing"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _profileRows)
+                    {
+                        <tr title="@L.F("Open {0}", row.Username)" @onclick="() => OpenProfile(row.UserId)">
+                            <td>@if (row.Me) { <b>@row.Username</b> } else { @row.Username }</td>
+                            <td class="num">@row.Mapsets</td>
+                            <td class="num">@row.Difficulties</td>
+                            <td class="num">@row.Plays</td>
+                            <td class="num">@Format.Duration(row.Music)</td>
+                            <td class="num">@row.InGame</td>
+                            <td class="num">@row.Downloaded</td>
+                            <td class="num"><b>@row.Missing</b></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+    }
+}
+else if (_result is not null)
 {
     <div class="profile-head">
         <h2>@_result.Username <small class="muted">@L.F("harvested {0:g}", _result.HarvestedAt.ToLocalTime())</small></h2>
@@ -33,8 +72,25 @@
                 <button class="btn small" @onclick="LoadConfig">@L["Load selection…"]</button>
             }
             <button class="btn small" @onclick="() => _confirmRemove = true">@L["Remove profile…"]</button>
+            <button class="btn small primary" disabled="@Harvest.IsRunning" @onclick="HarvestAgain">@L["Harvest again"]</button>
         </div>
     </div>
+
+    @if (Harvest.IsRunning)
+    {
+        <section class="panel">
+            <div class="progress-row">
+                <div class="progress"><div style="width:@Format.Percent(Harvest.Fraction)"></div></div>
+                <b>@Format.Percent(Harvest.Fraction, decimals: 0)</b>
+                <button class="btn small" @onclick="Harvest.Cancel">@L["Cancel"]</button>
+            </div>
+            <p class="muted progress-status">@Harvest.Status</p>
+        </section>
+    }
+    else if (_harvestedHere && Harvest.Error is not null)
+    {
+        <div class="callout error">@Harvest.Error</div>
+    }
 
     @if (_confirmRemove)
     {
@@ -59,7 +115,7 @@
         <p class="muted">@L["Harvest a profile to see its beatmaps."]</p>
     }
 }
-else if (_tab == BeatmapsTab.Overview)
+else if (!IsHub && _tab == BeatmapsTab.Overview)
 {
     <section class="panel">
         <ProfileOverview Summary="_summary!" Owned="id => _owned?.Owns(id) == true" />
@@ -71,6 +127,10 @@ else if (_owned is null)
 }
 else
 {
+    @if (IsHub)
+    {
+        <h2 class="spaced-top">@L["All maps"] <small class="muted">@L.F("from {0} profiles, each map once", _profileRows.Count)</small></h2>
+    }
     <p class="muted">
         @L.F("{0} beatmapsets · {1} in osu! · {2} downloaded.", _mapsets.Count, _inGameCount, _ownedCount - _inGameCount)
         @L[Config.SelectionMode == SelectionMode.Filters ? "Click a map to add or remove it." : "Click the maps you want."]
@@ -108,6 +168,23 @@ else
                 </select>
             </label>
         </div>
+
+        @if (IsHub && _profileRows.Count > 1)
+        {
+            <div class="filter-row">
+                <span class="filter-label">@L["Profiles"]</span>
+                <div class="chips">
+                    @foreach (var row in _profileRows)
+                    {
+                        <span class="chip @(State.HubProfiles.Contains(row.UserId) ? "on" : "")" @onclick="() => ToggleProfile(row.UserId)">@row.Username</span>
+                    }
+                </div>
+                <label class="check-field" title="@L["With two or more profiles chosen: maps all of them have. Otherwise: maps found in at least two profiles."]">
+                    <input type="checkbox" @bind="State.HubInCommon" @bind:after="ApplyProfileFilter" /> @L["Only maps in common"]
+                </label>
+                @if (State.HubProfiles.Count == 0) { <small class="muted">@L["all profiles"]</small> }
+            </div>
+        }
 
         <div class="filter-row">
             <span class="filter-label">@L["Mode"]</span>
@@ -301,7 +378,23 @@ else
     private static readonly string[] StatusOrder = ["ranked", "approved", "qualified", "loved", "pending", "wip", "graveyard"];
 
     private HarvestResult? _result;
+
+    /// <summary>Every map of the profile (or, in the hub, of every profile); <see cref="_mapsets"/> after the profile filter.</summary>
+    private IReadOnlyList<MapsetInfo> _allMapsets = [];
     private IReadOnlyList<MapsetInfo> _mapsets = [];
+
+    /// <summary>The hub's merged result, built once per change of the profiles.</summary>
+    private HarvestResult? _hub;
+    private CombinedProfiles? _combined;
+
+    private sealed record ProfileRow(long UserId, string Username, bool Me, int Mapsets, int Difficulties, long Plays, TimeSpan Music,
+        int InGame, int Downloaded, int Missing);
+
+    private List<ProfileRow> _profileRows = [];
+    private bool _harvestedHere;
+
+    /// <summary>/beatmaps without a profile: the harvest panel, every profile, and all their maps together.</summary>
+    private bool IsHub => UserId is null;
     private OwnershipIndex? _owned;
     private int _ownedCount;
     private int _inGameCount;
@@ -334,7 +427,7 @@ else
     private BeatmapsTab _tab = BeatmapsTab.Maps;
     private HarvestSummary? _summary;
 
-    /// <summary>The profile to show; none = the last harvested one.</summary>
+    /// <summary>The profile to show; none = the hub.</summary>
     [Parameter] public long? UserId { get; set; }
 
     // Each profile keeps its own selection.
@@ -348,7 +441,8 @@ else
         Harvest.Completed += OnHarvestCompleted;
         Downloads.Changed += OnSessionChanged;
         Library.Changed += OnLibraryChanged;
-        Harvest.LoadLatest();
+        Profiles.Changed += OnProfilesChanged;
+        Account.Changed += OnProfilesChanged;
     }
 
     // A finished harvest opens that profile's overview.
@@ -364,6 +458,7 @@ else
         if (!ReferenceEquals(target, _result) || _owned is null)
         {
             _confirmRemove = false;
+            _harvestedHere = false;
             _message = null;
             StopPreview();
             await LoadHarvestAsync(target);
@@ -371,33 +466,120 @@ else
     }
 
     private HarvestResult? Target() =>
-        UserId is { } id ? Profiles.Get(id) : Harvest.Current ?? Profiles.Latest;
+        UserId is { } id ? Profiles.Get(id) : _hub ??= BuildHub();
+
+    /// <summary>Every harvested profile (yours first), merged; null when none was harvested yet.</summary>
+    private HarvestResult? BuildHub()
+    {
+        var results = OrderedProfiles().ToList();
+        if (results.Count == 0)
+            return null;
+        _combined = CombinedProfiles.From(results);
+        return new HarvestResult
+        {
+            UserId = SelectorState.AllProfiles,
+            Username = L["All profiles"],
+            HarvestedAt = results.Max(r => r.HarvestedAt),
+            Mapsets = _combined.Mapsets,
+        };
+    }
+
+    private IEnumerable<HarvestResult> OrderedProfiles()
+    {
+        var me = Account.User?.UserId;
+        return Profiles.Profiles
+            .OrderByDescending(p => p.UserId == me)
+            .Select(p => Profiles.Get(p.UserId))
+            .OfType<HarvestResult>();
+    }
 
     private async Task LoadHarvestAsync(HarvestResult? target)
     {
         _result = target;
         _owned = null;
         if (_result is null)
+        {
+            _profileRows = [];
             return;
+        }
         _config = State.For(_result.UserId);
+        _allMapsets = _result.Mapsets;
+        ApplyProfileFilter();
+        SyncInputs();
 
-        _mapsets = _result.Mapsets;
+        var library = await Library.GetAsync();
+        _owned = library.Ownership;
+        if (library.Error is not null)
+            Show(false, library.Error);
+        if (IsHub)
+            _profileRows = ProfileRows(_owned);
+        ApplyProfileFilter();
+    }
+
+    /// <summary>The hub's profile filter (a profile's own page shows all of its maps), then the counts the filters show.</summary>
+    private void ApplyProfileFilter()
+    {
+        var combined = _combined;
+        _mapsets = !IsHub || combined is null
+            ? _allMapsets
+            : _allMapsets
+                .Where(m => combined.InAny(m.Id, State.HubProfiles) && (!State.HubInCommon || combined.InCommon(m.Id, State.HubProfiles)))
+                .ToList();
         _summary = HarvestSummary.From(_mapsets);
         _modeCounts = Ruleset.All.ToDictionary(mode => mode, mode => _mapsets.Count(m => m.Difficulties.Any(d => d.Mode == mode)));
         _statuses = _mapsets.Select(m => m.Status ?? "").Where(s => s.Length > 0).Distinct()
             .OrderBy(s => Array.IndexOf(StatusOrder, s) is var i and >= 0 ? i : int.MaxValue).ThenBy(s => s, StringComparer.Ordinal)
             .ToList();
-        SyncInputs();
-
-        _owned = null;
-        var library = await Library.GetAsync();
-        _owned = library.Ownership;
-        if (library.Error is not null)
-            Show(false, library.Error);
+        if (_owned is null)
+            return;
         _ownedCount = _mapsets.Count(m => _owned.Owns(m.Id));
         _inGameCount = _mapsets.Count(m => _owned.Of(m.Id) == MapOwnership.InGame);
         Refresh();
     }
+
+    private void ToggleProfile(long userId)
+    {
+        if (!State.HubProfiles.Remove(userId))
+            State.HubProfiles.Add(userId);
+        ApplyProfileFilter();
+    }
+
+    private List<ProfileRow> ProfileRows(OwnershipIndex owned)
+    {
+        var me = Account.User?.UserId;
+        return OrderedProfiles()
+            .Select(r =>
+            {
+                var summary = HarvestSummary.From(r.Mapsets, top: 0);
+                var states = r.Mapsets.Select(m => owned.Of(m.Id)).ToList();
+                return new ProfileRow(r.UserId, r.Username, r.UserId == me, summary.Mapsets, summary.Difficulties, summary.Plays,
+                    summary.TotalSongLength,
+                    states.Count(s => s == MapOwnership.InGame),
+                    states.Count(s => s == MapOwnership.Downloaded),
+                    states.Count(s => s == MapOwnership.None));
+            })
+            .ToList();
+    }
+
+    private void OpenProfile(long userId) => Nav.NavigateTo(string.Create(CultureInfo.InvariantCulture, $"beatmaps/{userId}"));
+
+    private void HarvestAgain()
+    {
+        if (_result is null || Harvest.IsRunning)
+            return;
+        _harvestedHere = true;
+        Harvest.Start(new UserReference(_result.UserId.ToString(CultureInfo.InvariantCulture), null));
+    }
+
+    // A new or removed profile changes the hub; signing in changes which profile is "yours".
+    private void OnProfilesChanged() => _ = InvokeAsync(async () =>
+    {
+        _hub = null;
+        _combined = null;
+        if (IsHub)
+            await LoadHarvestAsync(Target());
+        StateHasChanged();
+    });
 
     /// <summary>Recomputes the shown list and the selection totals.</summary>
     private void Refresh()
@@ -609,7 +791,6 @@ else
         var id = _result.UserId;
         Profiles.Remove(id);
         State.Forget(id);
-        Harvest.Forget(id);
         _confirmRemove = false;
         Nav.NavigateTo("beatmaps");
     }
@@ -645,5 +826,7 @@ else
         Harvest.Completed -= OnHarvestCompleted;
         Downloads.Changed -= OnSessionChanged;
         Library.Changed -= OnLibraryChanged;
+        Profiles.Changed -= OnProfilesChanged;
+        Account.Changed -= OnProfilesChanged;
     }
 }

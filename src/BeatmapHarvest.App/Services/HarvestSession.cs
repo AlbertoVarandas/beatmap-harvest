@@ -16,15 +16,12 @@ public sealed class HarvestSession(ProfileHarvester harvester, ProfileLibrary pr
     private readonly Lock _lock = new();
     private readonly List<string> _log = [];
     private CancellationTokenSource? _cts;
-    private bool _loaded;
 
     public event Action? Changed;
 
     /// <summary>Raised after a harvest finished and was saved, with the new result.</summary>
     public event Action<HarvestResult>? Completed;
 
-    public HarvestResult? Current { get; private set; }
-    public HarvestSummary? Summary { get; private set; }
     public bool IsRunning { get; private set; }
     public string? Error { get; private set; }
 
@@ -41,28 +38,6 @@ public sealed class HarvestSession(ProfileHarvester harvester, ProfileLibrary pr
             lock (_lock)
                 return [.. _log];
         }
-    }
-
-    /// <summary>Shows the most recent saved harvest when the app opens.</summary>
-    public void LoadLatest()
-    {
-        if (_loaded || IsRunning)
-            return;
-        _loaded = true;
-        if (profiles.Latest is { } latest)
-            SetResult(latest);
-    }
-
-    /// <summary>Called when a profile is removed, so the Harvest page stops showing it.</summary>
-    public void Forget(long userId)
-    {
-        if (Current?.UserId != userId)
-            return;
-        Current = null;
-        Summary = null;
-        if (profiles.Latest is { } latest)
-            SetResult(latest);
-        Changed?.Invoke();
     }
 
     /// <summary>Starts a harvest in the background (does nothing while one is running).</summary>
@@ -87,7 +62,6 @@ public sealed class HarvestSession(ProfileHarvester harvester, ProfileLibrary pr
         {
             var progress = new Progress(this);
             var result = await Task.Run(() => harvester.HarvestAsync(profile, options, progress, _cts.Token)).ConfigureAwait(false);
-            SetResult(result);
             profiles.Put(result);
             finished = result;
         }
@@ -115,12 +89,6 @@ public sealed class HarvestSession(ProfileHarvester harvester, ProfileLibrary pr
     }
 
     public void Cancel() => _cts?.Cancel();
-
-    private void SetResult(HarvestResult result)
-    {
-        Current = result;
-        Summary = HarvestSummary.From(result.Mapsets);
-    }
 
     private void Append(string line)
     {
