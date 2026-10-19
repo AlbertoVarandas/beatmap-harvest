@@ -31,8 +31,7 @@
     <ol class="steps">
         <li><a href="" @onclick="OpenOAuthPage" @onclick:preventDefault>@L["Open your osu! account settings"]</a> → <b>OAuth</b> → <b>New OAuth Application</b>.</li>
         <li>
-            @L["Give it any name and paste this as the callback URL:"] <code>@OsuAccount.RedirectUri</code>
-            <button class="btn small" @onclick="CopyCallback">@L[_copied ? "Copied" : "Copy"]</button>
+            @L["Give it any name and paste this as the callback URL:"] <CopyText Value="@OsuAccount.RedirectUri.ToString()" />
         </li>
         <li>@L.Html("Click <b>Edit</b> on it and copy the <b>Client ID</b> and the <b>Client Secret</b> here.")</li>
     </ol>
@@ -160,14 +159,6 @@
         _songs = settings.SongsDirectory;
         _moveTo = settings.MoveToDirectory;
         _parallel = settings.MaxParallelDownloads;
-    }
-
-    private bool _copied;
-
-    private void CopyCallback()
-    {
-        ClipboardHelper.Copy(OsuAccount.RedirectUri.ToString());
-        _copied = true;
     }
 
     private void OpenOAuthPage() => ShellLauncher.Open("https://osu.ppy.sh/home/account/edit#oauth");

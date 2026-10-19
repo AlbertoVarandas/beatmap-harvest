@@ -204,7 +204,7 @@ else
     @if (_confirmMove)
     {
         <div class="callout warn">
-            @L["Move every .osz from"] <code>@Session.DownloadsDirectory</code> @L["to"] <code>@Session.MoveToDirectory</code>?
+            @L["Move every .osz from"] <CopyText Value="@Session.DownloadsDirectory" /> @L["to"] <CopyText Value="@Session.MoveToDirectory" />?
             <div class="actions">
                 <button class="btn primary" disabled="@_moving" @onclick="MoveAsync">@L["Move"]</button>
                 <button class="btn" disabled="@_moving" @onclick="() => _confirmMove = false">@L["Cancel"]</button>
