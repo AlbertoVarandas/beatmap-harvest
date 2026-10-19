@@ -332,6 +332,8 @@ internal static class Translations
         ["Maps that are not in osu!lazer yet appear in their collections as soon as you import them. Collections you made in osu!lazer itself are listed at the bottom of this page, read-only."] =
             "Os mapas que ainda não estão no osu!lazer aparecem nas coleções assim que os importares. As coleções que criaste no próprio osu!lazer aparecem no fim desta página, só para consulta.",
         ["Already in osu!lazer"] = "Já no osu!lazer",
+        ["To add to osu!lazer"] = "Para adicionar ao osu!lazer",
+        ["Empty. Add maps from Beatmaps with Add to collection…"] = "Vazia. Adiciona mapas a partir de Beatmaps com Adicionar a coleção…",
         ["Reload from osu!lazer"] = "Recarregar do osu!lazer",
         ["Read osu!lazer's collections again, e.g. after making some in osu!lazer"] =
             "Ler de novo as coleções do osu!lazer, por exemplo depois de criares algumas no osu!lazer",
@@ -362,6 +364,15 @@ internal static class Translations
             "Este osu!lazer guarda as coleções de forma diferente da que o Beatmap Harvest conhece. Atualiza o Beatmap Harvest ou usa o assistente.",
         ["This osu!lazer stores its database in a format Beatmap Harvest does not know yet. Update Beatmap Harvest, or use the setup wizard."] =
             "Este osu!lazer guarda a base de dados num formato que o Beatmap Harvest ainda não conhece. Atualiza o Beatmap Harvest ou usa o assistente.",
+        ["The language of Beatmap Harvest."] = "O idioma do Beatmap Harvest.",
+        ["Which osu! Beatmap Harvest works with, and where it is installed."] = "Com que osu! o Beatmap Harvest trabalha e onde está instalado.",
+        ["Your osu!lazer's version and database, and how collections get into it."] =
+            "A versão e a base de dados do teu osu!lazer, e como as coleções chegam até ele.",
+        ["Where maps are downloaded, and how many at once."] = "Onde os mapas são transferidos e quantos de cada vez.",
+        ["Data"] = "Dados",
+        ["Beatmap Harvest's own files: settings, harvested profiles and backups."] =
+            "Os ficheiros do próprio Beatmap Harvest: definições, perfis recolhidos e cópias de segurança.",
+        ["Open osu!lazer backups"] = "Abrir cópias de segurança do osu!lazer",
         ["Installed version"] = "Versão instalada",
         ["unknown"] = "desconhecida",
         ["up to date"] = "atualizado",
@@ -391,6 +402,10 @@ internal static class Translations
         ["Read from a copy of osu!lazer's database. Change skins in osu!lazer itself."] =
             "Lidas de uma cópia da base de dados do osu!lazer. Altera as skins no próprio osu!lazer.",
         ["built-in"] = "incluída",
+        ["In use"] = "Em uso",
+        ["{0} file"] = "{0} ficheiro",
+        ["Your skins"] = "As tuas skins",
+        ["Built into osu!lazer"] = "Incluídas no osu!lazer",
         ["Comes with osu!lazer."] = "Vem com o osu!lazer.",
         ["Open Skins folder"] = "Abrir pasta Skins",
         ["{0} skins"] = "{0} skins",

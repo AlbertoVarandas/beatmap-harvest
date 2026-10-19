@@ -1,131 +1,86 @@
 @page "/skins"
+@implements IDisposable
 @inject OsuLibrary Library
 @inject LazerRealmService LazerRealm
-@implements IDisposable
 
-<h1>@L["Skins"]</h1>
-<p class="muted">@L["The skins installed in osu!."]</p>
-
-@if (Library.Client == OsuClient.Lazer)
-{
+<div class="panel-head">
+    <h1>@L["Skins"] @if (_cards.Count > 0) { <small class="muted">@_cards.Count</small> }</h1>
     <div class="actions">
-        <span class="muted small-text">@L["Read from a copy of osu!lazer's database. Change skins in osu!lazer itself."]</span>
-        <button class="btn small" disabled="@(_lazer is null)" title="@L["Read osu!lazer's skins again, e.g. after adding some in osu!lazer"]"
-                @onclick="LazerRealm.Reload">@L["Reload from osu!lazer"]</button>
+        @if (Library.Client == OsuClient.Lazer)
+        {
+            <button class="btn small" disabled="@(_lazer is null)" title="@L["Read osu!lazer's skins again, e.g. after adding some in osu!lazer"]"
+                    @onclick="LazerRealm.Reload">@L["Reload from osu!lazer"]</button>
+        }
+        else if (_install is not null)
+        {
+            <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(_install.SkinsDirectory)">@L["Open Skins folder"]</button>
+        }
     </div>
-    @if (_lazer is null)
+</div>
+<p class="muted">
+    @L["The skins installed in osu!."]
+    @if (Library.Client == OsuClient.Lazer)
     {
-        <p class="muted"><span class="spinner"></span> @L["Reading osu!lazer's database…"]</p>
+        @(" " + L["Read from a copy of osu!lazer's database. Change skins in osu!lazer itself."])
     }
-    else if (_lazer.Error is not null)
+</p>
+
+@if (Library.Client == OsuClient.Lazer && _lazer is null)
+{
+    <div class="page-loader"><span class="spinner"></span> @L["Reading osu!lazer's database…"]</div>
+}
+else if (_lazer?.Error is not null)
+{
+    <div class="callout error">@_lazer.Error</div>
+}
+else if (Library.Client != OsuClient.Lazer && _install is null)
+{
+    <div class="callout warn">@L["osu! was not found on this PC."] <a href="settings">@L["Set its folder in Settings"]</a>.</div>
+}
+else if (_cards.Count == 0)
+{
+    <p class="muted empty-note">@L["No skins installed."]</p>
+}
+else
+{
+    @if (_cards.FirstOrDefault(c => c.Current) is { } current)
     {
-        <div class="callout error">@_lazer.Error</div>
+        <h2 class="section-title">@L["In use"]</h2>
+        <SkinCardView Card="current" Featured="true" />
     }
-    else if (_lazer.Content is { } content)
+
+    var own = _cards.Where(c => !c.BuiltIn && !c.Current).ToList();
+    @if (own.Count > 0)
     {
-        <div class="actions">
-            <span class="muted">@L.F("{0} skins", content.Skins.Count)</span>
-        </div>
+        <h2 class="section-title">@L["Your skins"] <small class="muted">@own.Count</small></h2>
         <div class="skins">
-            @foreach (var skin in content.Skins)
+            @foreach (var card in own)
             {
-                var current = skin.Id == _currentLazerSkin;
-                var previews = SkinCatalog.LazerPreviews(skin);
-                <section class="panel skin @(current ? "current" : "")">
-                    <div class="panel-head">
-                        <div>
-                            <h2>
-                                @skin.Name
-                                @if (current) { <span class="tag have">@L["current"]</span> }
-                                @if (skin.Protected) { <span class="tag">@L["built-in"]</span> }
-                            </h2>
-                            <div class="muted small-text">
-                                @(skin.Creator.Length == 0 ? L["unknown author"] : L.F("by {0}", skin.Creator))
-                                @if (!skin.Protected) { <span> · @L.F("{0} files", skin.Files.Count)</span> }
-                            </div>
-                        </div>
-                    </div>
-                    @if (skin.Protected)
-                    {
-                        <p class="muted">@L["Comes with osu!lazer."]</p>
-                    }
-                    else if (previews.Count == 0)
-                    {
-                        <p class="muted">@L["No preview images (this skin uses osu!'s defaults for these elements)."]</p>
-                    }
-                    else
-                    {
-                        <div class="skin-previews">
-                            @foreach (var element in previews)
-                            {
-                                <figure>
-                                    <div class="skin-img"><img src="@OsuFilesHost.LazerUrl(element.RelativePath)" alt="@element.Label" loading="lazy" onerror="this.style.visibility='hidden'" /></div>
-                                    <figcaption>@L[element.Label]</figcaption>
-                                </figure>
-                            }
-                        </div>
-                    }
-                </section>
+                <SkinCardView Card="card" />
+            }
+        </div>
+    }
+
+    var builtIn = _cards.Where(c => c.BuiltIn && !c.Current).ToList();
+    @if (builtIn.Count > 0)
+    {
+        <h2 class="section-title">@L["Built into osu!lazer"]</h2>
+        <div class="builtin-skins">
+            @foreach (var card in builtIn)
+            {
+                <div class="builtin-skin" title="@card.Author">
+                    <b>@card.Name</b>
+                    <span class="muted">@card.Author</span>
+                </div>
             }
         </div>
     }
 }
-else if (_install is null)
-{
-    <div class="callout warn">@L["osu! was not found on this PC."] <a href="settings">@L["Set its folder in Settings"]</a>.</div>
-}
-else if (_skins.Count == 0)
-{
-    <p class="muted">@L["No skins installed."]</p>
-}
-else
-{
-    <div class="actions">
-        <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(_install.SkinsDirectory)">@L["Open Skins folder"]</button>
-        <span class="muted">@L.F("{0} skins", _skins.Count)</span>
-    </div>
-    <div class="skins">
-        @foreach (var skin in _skins)
-        {
-            var current = string.Equals(skin.Folder, _install.CurrentSkin, StringComparison.OrdinalIgnoreCase);
-            <section class="panel skin @(current ? "current" : "")">
-                <div class="panel-head">
-                    <div>
-                        <h2>@skin.Name @if (current) { <span class="tag have">@L["current"]</span> }</h2>
-                        <div class="muted small-text">
-                            @(skin.Author is null ? L["unknown author"] : L.F("by {0}", skin.Author))
-                            @if (skin.Version is not null) { <span> · @L.F("skin version {0}", skin.Version)</span> }
-                            · @L.F("{0} files", skin.Files)
-                        </div>
-                    </div>
-                    <button class="btn small" @onclick="() => ShellLauncher.OpenFolder(Path.Combine(_install.SkinsDirectory, skin.Folder))">@L["Open folder"]</button>
-                </div>
-                @if (skin.Previews.Count == 0)
-                {
-                    <p class="muted">@L["No preview images (this skin uses osu!'s defaults for these elements)."]</p>
-                }
-                else
-                {
-                    <div class="skin-previews">
-                        @foreach (var element in skin.Previews)
-                        {
-                            <figure>
-                                <div class="skin-img"><img src="@OsuFilesHost.Url(Path.Combine("Skins", element.RelativePath))" alt="@element.Label" loading="lazy" onerror="this.style.visibility='hidden'" /></div>
-                                <figcaption>@L[element.Label]</figcaption>
-                            </figure>
-                        }
-                    </div>
-                }
-            </section>
-        }
-    </div>
-}
 
 @code {
     private OsuInstall? _install;
-    private IReadOnlyList<SkinInfo> _skins = [];
     private LazerRealmResult? _lazer;
-    private Guid? _currentLazerSkin;
+    private List<SkinCard> _cards = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -137,13 +92,30 @@ else
         }
         _install = Library.Install;
         if (_install is not null)
-            _skins = await Task.Run(() => SkinCatalog.List(_install.SkinsDirectory));
+        {
+            var install = _install;
+            var skins = await Task.Run(() => SkinCatalog.List(install.SkinsDirectory));
+            _cards = skins.Select(s => new SkinCard(
+                    s.Name, s.Author is null ? L["unknown author"] : L.F("by {0}", s.Author),
+                    string.Join(" · ", new[] { s.Version is null ? null : L.F("skin version {0}", s.Version), L.F(s.Files == 1 ? "{0} file" : "{0} files", s.Files) }.OfType<string>()),
+                    string.Equals(s.Folder, install.CurrentSkin, StringComparison.OrdinalIgnoreCase), false,
+                    s.Previews.Select(p => (L[p.Label], OsuFilesHost.Url(Path.Combine("Skins", p.RelativePath)))).ToList(),
+                    Path.Combine(install.SkinsDirectory, s.Folder)))
+                .ToList();
+        }
     }
 
     private async Task LoadLazerAsync()
     {
-        _currentLazerSkin = Library.Clients.Lazer?.CurrentSkin;
+        var current = Library.Clients.Lazer?.CurrentSkin;
         _lazer = await LazerRealm.GetAsync();
+        _cards = (_lazer.Content?.Skins ?? []).Select(s => new SkinCard(
+                s.Name, s.Creator.Length == 0 ? L["unknown author"] : L.F("by {0}", s.Creator),
+                s.Protected ? L["Comes with osu!lazer."] : L.F(s.Files.Count == 1 ? "{0} file" : "{0} files", s.Files.Count),
+                s.Id == current, s.Protected,
+                SkinCatalog.LazerPreviews(s).Select(p => (L[p.Label], OsuFilesHost.LazerUrl(p.RelativePath))).ToList(),
+                null))
+            .ToList();
     }
 
     private void OnLazerChanged() => _ = InvokeAsync(async () =>

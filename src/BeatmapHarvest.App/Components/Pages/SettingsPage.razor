@@ -15,19 +15,28 @@
     <div class="callout warn">@L["Welcome! Add your osu! API credentials below to start using Beatmap Harvest."]</div>
 }
 
-<section class="panel">
-    <div class="field">
-        <span>@L["Language"]</span>
-        <div class="segmented">
-            <button class="@(L.Language == AppLanguage.English ? "on" : "")" @onclick="() => L.Set(AppLanguage.English)">English</button>
-            <button class="@(L.Language == AppLanguage.Portuguese ? "on" : "")" @onclick="() => L.Set(AppLanguage.Portuguese)">Português (Portugal)</button>
-        </div>
-    </div>
-</section>
+@{
+    var clients = OsuClients.Detect(_osu, _lazer);
+    var inUse = clients.Resolve(_client);
+}
 
-<section class="panel">
-    <h2>@L["osu! API credentials"]</h2>
-    <p class="muted">@L["A free key from your osu! account, needed to read profiles. The secret is stored encrypted."]</p>
+@* Jumps to a section (plain DOM scrolling: these are not routes). *@
+<nav class="settings-nav">
+    @foreach (var (id, title) in Sections(clients))
+    {
+        <button onclick="document.getElementById('@id').scrollIntoView({ behavior: 'smooth', block: 'start' })">@title</button>
+    }
+</nav>
+
+<SettingsSection Id="language" Title="@L["Language"]" Description="@L["The language of Beatmap Harvest."]">
+    <div class="segmented">
+        <button class="@(L.Language == AppLanguage.English ? "on" : "")" @onclick="() => L.Set(AppLanguage.English)">English</button>
+        <button class="@(L.Language == AppLanguage.Portuguese ? "on" : "")" @onclick="() => L.Set(AppLanguage.Portuguese)">Português (Portugal)</button>
+    </div>
+</SettingsSection>
+
+<SettingsSection Id="api" Title="@L["osu! API credentials"]"
+                 Description="@L["A free key from your osu! account, needed to read profiles. The secret is stored encrypted."]">
     <ol class="steps">
         <li><a href="" @onclick="OpenOAuthPage" @onclick:preventDefault>@L["Open your osu! account settings"]</a> → <b>OAuth</b> → <b>New OAuth Application</b>.</li>
         <li>
@@ -63,16 +72,11 @@
     {
         <div class="callout @(_credentialOk ? "ok" : "error")">@_credentialMessage</div>
     }
-</section>
+</SettingsSection>
 
 <AccountPanel HasCredentials="_hasSaved" />
 
-<section class="panel">
-    <h2>osu!</h2>
-    @{
-        var clients = OsuClients.Detect(_osu, _lazer);
-        var inUse = clients.Resolve(_client);
-    }
+<SettingsSection Id="osu" Title="osu!" Description="@L["Which osu! Beatmap Harvest works with, and where it is installed."]">
     <div class="client-list">
         <span class="tag @(clients.Lazer is null ? "" : "have")">osu!lazer @L[clients.Lazer is null ? "not found" : "found"]</span>
         <span class="tag @(clients.Stable is null ? "" : "have")">osu! (stable) @L[clients.Stable is null ? "not found" : "found"]</span>
@@ -103,13 +107,14 @@
         <FolderField Label="@L["Songs folder"]" Value="@_songs"
                      ValueChanged="v => SaveFolders(() => _songs = v)" DefaultPath="@DetectedSongs" />
     }
+</SettingsSection>
 
-    @if (clients.Lazer is { } lazer)
-    {
-        var installed = lazer.Version;
-        <h3>osu!lazer</h3>
-        <div class="detail-grid">
-            <div>
+@if (clients.Lazer is { } lazer)
+{
+    var installed = lazer.Version;
+    <SettingsSection Id="lazer" Title="osu!lazer" Description="@L["Your osu!lazer's version and database, and how collections get into it."]">
+        <div class="stat-cards">
+            <div class="stat-card">
                 <span>@L["Installed version"]</span>
                 <b>@(installed ?? L["unknown"])</b>
                 @if (installed is not null && _latestLazer is not null)
@@ -124,7 +129,7 @@
                     }
                 }
             </div>
-            <div>
+            <div class="stat-card">
                 <span>@L["Database"]</span>
                 @if (_lazerRealm?.Content is { } content)
                 {
@@ -139,28 +144,35 @@
                     <span class="spinner small"></span>
                 }
             </div>
-            <div>
+            <div class="stat-card">
                 <span>@L["Collections straight into osu!lazer"]</span>
                 @if (_lazerCompatibility is { } compatibility)
                 {
-                    <span class="tag @(compatibility.Compatible ? "have" : "failed")" title="@(compatibility.Reason is null ? null : L[compatibility.Reason])">
+                    <b class="@(compatibility.Compatible ? "ok-text" : "error-text")" title="@(compatibility.Reason is null ? null : L[compatibility.Reason])">
                         @L[compatibility.Compatible ? "compatible" : "not compatible"]
-                    </span>
+                    </b>
+                }
+                else
+                {
+                    <span class="spinner small"></span>
                 }
             </div>
         </div>
-        <label class="check-field">
-            <input type="checkbox" checked="@_lazerDirect" @onchange="e => SetLazerDirect((bool)e.Value!)" />
-            @L["Save collections straight into osu!lazer, without its setup wizard"] <span class="tag downloaded-only">@L["experimental"]</span>
-        </label>
-        <p class="muted small-text">
-            @L["Beatmap Harvest then changes osu!lazer's database itself (only with osu!lazer closed, after checking a changed copy and keeping a backup). If osu!lazer ever fails to start afterwards, restore the backup or turn this off."]
-        </p>
-    }
-</section>
 
-<section class="panel">
-    <h2>@L["Downloads"]</h2>
+        <div class="experimental-box @(_lazerDirect ? "on" : "")">
+            <label class="check-field">
+                <input type="checkbox" checked="@_lazerDirect" @onchange="e => SetLazerDirect((bool)e.Value!)" />
+                <b>@L["Save collections straight into osu!lazer, without its setup wizard"]</b>
+                <span class="tag downloaded-only">@L["experimental"]</span>
+            </label>
+            <p class="muted small-text">
+                @L["Beatmap Harvest then changes osu!lazer's database itself (only with osu!lazer closed, after checking a changed copy and keeping a backup). If osu!lazer ever fails to start afterwards, restore the backup or turn this off."]
+            </p>
+        </div>
+    </SettingsSection>
+}
+
+<SettingsSection Id="downloads" Title="@L["Downloads"]" Description="@L["Where maps are downloaded, and how many at once."]">
     <FolderField Label="@L["Downloads folder"]" Value="@_downloads"
                  ValueChanged="v => SaveFolders(() => _downloads = v)" DefaultPath="@Paths.DefaultDownloadsDirectory" />
     @if (inUse == OsuClient.Stable)
@@ -172,10 +184,17 @@
         <span>@L["Parallel downloads"]</span>
         <input class="input" type="number" min="1" max="6" @bind="_parallel" @bind:after="() => SaveFolders(() => { })" />
     </label>
+</SettingsSection>
+
+<SettingsSection Id="data" Title="@L["Data"]" Description="@L["Beatmap Harvest's own files: settings, harvested profiles and backups."]">
     <div class="actions">
         <button class="btn" @onclick="() => ShellLauncher.OpenFolder(Paths.Root)">@L["Open data folder"]</button>
+        @if (Directory.Exists(Paths.LazerBackupsDirectory))
+        {
+            <button class="btn" @onclick="() => ShellLauncher.OpenFolder(Paths.LazerBackupsDirectory)">@L["Open osu!lazer backups"]</button>
+        }
     </div>
-</section>
+</SettingsSection>
 
 @code {
     [Inject(Key = ServiceRegistration.OsuHttp)]
@@ -210,6 +229,19 @@
             _lazerCompatibility = await Task.Run(() => LazerRealm.Compatibility(content));
         StateHasChanged();
         _latestLazer = await LazerVersions.LatestAsync();
+    }
+
+    /// <summary>The sections, in page order, for the menu at the top (osu!lazer only when it is installed).</summary>
+    private IEnumerable<(string Id, string Title)> Sections(OsuClients clients)
+    {
+        yield return ("language", L["Language"]);
+        yield return ("api", L["osu! API credentials"]);
+        yield return ("account", L["osu! account"]);
+        yield return ("osu", "osu!");
+        if (clients.Lazer is not null)
+            yield return ("lazer", "osu!lazer");
+        yield return ("downloads", L["Downloads"]);
+        yield return ("data", L["Data"]);
     }
 
     private void SetLazerDirect(bool on)

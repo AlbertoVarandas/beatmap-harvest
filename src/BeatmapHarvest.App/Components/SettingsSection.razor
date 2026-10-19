@@ -1,0 +1,29 @@
+@* One block of Settings: what it is about on the left, its controls on the right (stacked on narrow windows). *@
+
+<section class="panel settings-section" id="@Id">
+    <header>
+        <h2>@Title</h2>
+        @if (Badge is not null)
+        {
+            <span class="tag">@Badge</span>
+        }
+        @if (Description is not null)
+        {
+            <p class="muted">@Description</p>
+        }
+    </header>
+    <div class="settings-body">
+        @ChildContent
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Id { get; set; } = "";
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Description { get; set; }
+
+    /// <summary>A short tag next to the explanation, e.g. "optional".</summary>
+    [Parameter] public string? Badge { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}
