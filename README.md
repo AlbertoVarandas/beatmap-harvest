@@ -1,3 +1,5 @@
+<img src="docs/icon.png" alt="" width="96" />
+
 # Beatmap Harvest
 
 Download every osu! beatmap you have ever played, in a few clicks.
